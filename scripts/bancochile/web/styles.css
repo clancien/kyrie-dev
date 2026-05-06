@@ -1,0 +1,261 @@
+:root {
+  --bg-1: #eef3ff;
+  --bg-2: #f6f9ff;
+  --ink: #10203a;
+  --muted: #5d6f8f;
+  --card: #ffffff;
+  --line: #dce6f8;
+  --accent: #0063e5;
+  --accent-2: #00a0b8;
+  --ok: #12946a;
+  --warn: #bf7b00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--bg-1), var(--bg-2));
+}
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0, 99, 229, 0.15), transparent 35%),
+    radial-gradient(circle at 90% 20%, rgba(0, 160, 184, 0.13), transparent 35%),
+    radial-gradient(circle at 50% 100%, rgba(16, 32, 58, 0.08), transparent 35%);
+  pointer-events: none;
+}
+
+.container {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 18px 48px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.kicker {
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+h1 {
+  margin: 6px 0;
+  font-size: clamp(24px, 4vw, 40px);
+  line-height: 1.1;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  cursor: pointer;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.metric .label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric .value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(4px);
+}
+
+h2 {
+  margin: 4px 0 12px;
+  font-size: 18px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.movement-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.input-search {
+  width: 320px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font: inherit;
+  color: var(--ink);
+}
+
+.input-search:focus {
+  outline: 2px solid rgba(0, 99, 229, 0.2);
+  border-color: var(--accent);
+}
+
+.input-select {
+  width: 150px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font: inherit;
+  color: var(--ink);
+}
+
+.input-select:focus {
+  outline: 2px solid rgba(0, 99, 229, 0.2);
+  border-color: var(--accent);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  padding: 9px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.ta-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-clickable {
+  cursor: pointer;
+}
+
+.row-clickable:hover {
+  background: rgba(0, 99, 229, 0.06);
+}
+
+.row-selected {
+  background: rgba(0, 99, 229, 0.14);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.empty {
+  color: var(--muted);
+  font-style: italic;
+  padding: 10px;
+}
+
+.account-block {
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.account-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.account-block table th:first-child,
+.account-block table td:first-child {
+  white-space: nowrap;
+}
+
+.raw {
+  max-height: 360px;
+  overflow: auto;
+  background: #0f1b2b;
+  color: #e6f0ff;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.tag-ok,
+.tag-warn {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tag-ok {
+  background: rgba(18, 148, 106, 0.12);
+  color: var(--ok);
+}
+
+.tag-warn {
+  background: rgba(191, 123, 0, 0.12);
+  color: var(--warn);
+}

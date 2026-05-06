@@ -1,0 +1,12 @@
+services:
+  web:
+    image: nginx:alpine
+    container_name: bancochile_web
+    restart: unless-stopped
+    ports:
+      - "8030:80"
+    volumes:
+      # Comparte toda la carpeta bancochile con el contenedor
+      - ./:/workspace
+      # Configuracion de nginx
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro

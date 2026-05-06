@@ -1,0 +1,28 @@
+# Editor / local
+.codex
+.agents/skills/bmad-*
+_bmad
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Entorno y secretos
+.env
+scripts/sync/drive-client_secret.json
+scripts/sync/drive.cod.txt
+
+# Python
+**/__pycache__
+.venv/
+
+# BancoChile: sesiones, cookies, datos exportados
+scripts/bancochile/.session/
+scripts/bancochile/cache/
+scripts/bancochile/output/
+scripts/bancochile/.venv/
+scripts/bancochile.zip
+
+# Pasate sin tag
+data/logs/**

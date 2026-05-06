@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel BancoChile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-layer"></div>
+    <main class="container">
+      <header class="hero">
+        <div>
+          <p class="kicker">Dashboard Financiero</p>
+          <h1>Resumen de Productos y Cartola</h1>
+          <p class="subtitle">Visualización local de datos obtenidos desde la API.</p>
+        </div>
+        <button id="reloadBtn" class="btn">Recargar</button>
+      </header>
+
+      <section class="metrics" id="metrics"></section>
+
+      <section class="panel">
+        <h2>Cuentas Consultadas</h2>
+        <div id="accounts" class="table-wrap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Últimos Movimientos</h2>
+          <div class="movement-filters">
+            <input
+              id="movementsSearch"
+              class="input-search"
+              type="search"
+              placeholder="Buscar en movimientos..."
+              autocomplete="off"
+            />
+            <select id="movementsMonth" class="input-select">
+              <option value="">Todos los meses</option>
+            </select>
+            <select id="movementsType" class="input-select">
+              <option value="">Todos los tipos</option>
+              <option value="cargo">Cargo</option>
+              <option value="abono">Abono</option>
+            </select>
+          </div>
+        </div>
+        <div id="movementsByAccount"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Tarjetas</h2>
+        <div id="cards" class="table-wrap"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Raw API</h2>
+        <details>
+          <summary>Ver JSON completo</summary>
+          <pre id="rawJson" class="raw"></pre>
+        </details>
+      </section>
+    </main>
+
+    <template id="emptyStateTpl">
+      <div class="empty">Sin datos para mostrar.</div>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
