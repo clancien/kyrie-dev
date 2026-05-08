@@ -19,6 +19,7 @@ Ejecutar el flujo de Mesa de Ayuda SIDOT para solicitudes de clave, desde la rev
 
 2. Validar datos mínimos del solicitante:
 - Nombre completo, RUT, Institución, Correo de uso exclusivo.
+- El correo del solicitante debe obtenerse siempre desde el campo GitLab `service_desk_reply_to` de `GET /projects/<GITLAB_PROJECT_ID>/issues/<issue_iid>`. No usar la descripción del issue ni el autor `support-bot` como fuente del correo.
 - Si faltan datos críticos, responder con plantilla de información incompleta y cerrar.
 - Actualizar `doc/.sidot/git-tickets.json` con los datos extraídos del solicitante.
 
@@ -31,7 +32,7 @@ Ejecutar el flujo de Mesa de Ayuda SIDOT para solicitudes de clave, desde la rev
 4. Iniciar tramitación:
 - Publicar plantilla de "en proceso".
 - Cambiar etiquetas/estado del work item a en curso.
-- Enviar solicitud de validación al equipo administrador SIDOT.
+- Enviar solicitud de validación al equipo administrador SIDOT. Para esto generar un link en formato "mailto:"
 
 5. Aplicar reinicio de clave:
 - Leer `usuarioId` y `login` desde `doc/.sidot/git-tickets.json` para asegurar consistencia.
@@ -90,7 +91,7 @@ python3 .agents/skills/sidot-mesa-ayuda/assets/reset_password_from_issue.py \
 Opcional:
 
 - `--sidot-user-query "Cmiranda"` para forzar la búsqueda del usuario SIDOT.
-- Si no se informa `--sidot-user-query`, el script intenta inferir la búsqueda desde `Usuario`, `usuario sidot`, `login`, `Email/Correo` o `Nombre completo` del issue.
+- Si no se informa `--sidot-user-query`, el script intenta inferir la búsqueda desde `Usuario`, `usuario sidot`, `login`, `service_desk_reply_to` o `Nombre completo` del issue.
 - `--solicitante-nombre "Juan Carlos Pérez"` para fijar saludo.
 - `--sexo M|F` para fijar tratamiento (`Estimado`/`Estimada`) cuando la inferencia no sea clara.
 - `--skip-start-note` para no publicar nuevamente la plantilla "en proceso" cuando el issue ya fue tramitado y solo falta aplicar el reinicio aprobado.

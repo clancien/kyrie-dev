@@ -60,16 +60,9 @@ def parse_issue_username(description: str) -> str | None:
     return None
 
 
-def parse_issue_email(description: str) -> str | None:
-    patterns = [
-        r"Email(?:\s*\([^)]*\))?:\s*([^\s<]+@[^\s<]+)",
-        r"Correo(?:\s+electr[oó]nico)?(?:\s*\([^)]*\))?:\s*([^\s<]+@[^\s<]+)",
-    ]
-    for pattern in patterns:
-        m = re.search(pattern, description or "", flags=re.I)
-        if m:
-            return m.group(1).strip().rstrip(".,;")
-    return None
+def parse_issue_service_desk_email(issue_data: dict) -> str | None:
+    email = (issue_data.get("service_desk_reply_to") or "").strip().rstrip(".,;")
+    return email or None
 
 
 def parse_issue_full_name(description: str) -> str | None:
@@ -170,6 +163,7 @@ def main() -> None:
     parser.add_argument("--solicitante-nombre", default="")
     parser.add_argument("--sexo", default="")
     parser.add_argument("--sidot-user-query", default="")
+    parser.add_argument("--sidot-login", default="", help="SIDOT login to verify after resetting the password.")
     parser.add_argument("--skip-start-note", action="store_true")
     parser.add_argument("--skip-close", action="store_true")
     args = parser.parse_args()
@@ -185,10 +179,11 @@ def main() -> None:
 
     issue_data = gitlab.get(f"/projects/{quote(env_project, safe='')}/issues/{args.issue_iid}")
     description = issue_data.get("description") or ""
+    service_desk_email = parse_issue_service_desk_email(issue_data)
     sidot_user_query = (
         args.sidot_user_query.strip()
         or parse_issue_username(description)
-        or parse_issue_email(description)
+        or service_desk_email
         or parse_issue_full_name(description)
     )
     if not sidot_user_query:
@@ -239,6 +234,12 @@ def main() -> None:
     save_response = sidot.session.post(post_url, data=payload, headers={"Referer": edit_url}, timeout=30)
     save_response.raise_for_status()
 
+    verification_login = args.sidot_login.strip() or sidot_user_query
+    verification_client = SidotClient(base_url=sidot.base_url, username=verification_login, password=new_password)
+    verification_metadata = verification_client.login()
+    if not verification_metadata.get("authenticated"):
+        raise RuntimeError(f"SIDOT login verification failed for {verification_login}.")
+
     note_end = (
         f"{saludo},\n\n"
         "A continuación su nueva clave de acceso temporal, se recomienda cambiar la misma ni bien logre tener acceso a la plataforma.\n\n"
@@ -260,6 +261,7 @@ def main() -> None:
     print(f"SIDOT edit URL: {edit_url}")
     print(f"SIDOT password fields updated: {', '.join(password_fields)}")
     print(f"SIDOT password confirmation fields updated: {', '.join(confirmation_fields)}")
+    print(f"SIDOT temporary login verified: {verification_metadata.get('authenticated')}")
     print(f"GitLab start note id: {start_note.get('id') if start_note else '-'}")
     print(f"GitLab final note id: {end_note.get('id')}")
     print(f"Issue closed: {not args.skip_close}")
