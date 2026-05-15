@@ -1,4 +1,0 @@
-interface:
-  display_name: "Trello Card Resolution"
-  short_description: "Resuelve tarjetas SIDOT de Trello con SQL trazable."
-  default_prompt: "Use this skill to process SIDOT support cards from Trello end-to-end: sync cards, analyze requirements, generate SQL scripts from templates, and update tracking artifacts."

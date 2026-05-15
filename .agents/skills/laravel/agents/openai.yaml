@@ -1,4 +1,0 @@
-interface:
-  display_name: "Laravel"
-  short_description: "Laravel app implementation guidance"
-  default_prompt: "Use $laravel to implement and verify a focused Laravel application change."
