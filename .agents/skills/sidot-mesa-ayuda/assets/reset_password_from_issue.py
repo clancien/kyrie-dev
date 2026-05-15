@@ -30,6 +30,19 @@ env_get = gitlab_api.env_get
 SidotClient = _load_module("sidot_connect_api", SIDOT_API_PATH).SidotClient
 
 
+def require_confirmation(action: str, details: list[str]) -> None:
+    print("\nCONFIRMACION REQUERIDA")
+    print(action)
+    for detail in details:
+        print(f"- {detail}")
+    print("Escriba exactamente CONFIRMO para continuar.")
+    if not sys.stdin.isatty():
+        raise RuntimeError("Refusing to modify GitLab or SIDOT without interactive user confirmation.")
+    answer = input("> ").strip()
+    if answer != "CONFIRMO":
+        raise RuntimeError("Action cancelled by user before modifying data.")
+
+
 def generate_password(length: int = 20) -> str:
     lowers = string.ascii_lowercase
     uppers = string.ascii_uppercase
@@ -202,6 +215,15 @@ def main() -> None:
             "Atte,\n\n"
             "Equipo Mesa de Ayuda SIDOT"
         )
+        require_confirmation(
+            "Modificar GitLab: publicar nota inicial y etiquetar issue en proceso.",
+            [
+                f"Proyecto: {env_project}",
+                f"Issue IID: {args.issue_iid}",
+                'Etiqueta a agregar: Estado: En proceso',
+                "Comentario: solicitud en proceso",
+            ],
+        )
         start_note = gitlab.post(f"/projects/{quote(env_project, safe='')}/issues/{args.issue_iid}/notes", form={"body": note_start})
         gitlab.put(f"/projects/{quote(env_project, safe='')}/issues/{args.issue_iid}", form={"add_labels": "Estado: En proceso"})
 
@@ -231,6 +253,14 @@ def main() -> None:
     password_fields = ["contrasenaNew"]
     confirmation_fields = ["contrasenaRepeat"]
 
+    require_confirmation(
+        "Modificar SIDOT: reiniciar clave del usuario.",
+        [
+            f"Usuario SIDOT: {edit_url}",
+            f"Login de verificacion: {args.sidot_login.strip() or sidot_user_query}",
+            "La clave temporal no se imprimira en esta confirmacion.",
+        ],
+    )
     save_response = sidot.session.post(post_url, data=payload, headers={"Referer": edit_url}, timeout=30)
     save_response.raise_for_status()
 
@@ -246,6 +276,21 @@ def main() -> None:
         f"{new_password}\n\n"
         "Atte,\n\n"
         "Equipo Mesa de Ayuda SIDOT"
+    )
+    gitlab_finish_details = [
+        f"Proyecto: {env_project}",
+        f"Issue IID: {args.issue_iid}",
+        "Comentario: entrega de clave temporal",
+    ]
+    if not args.skip_close:
+        gitlab_finish_details.extend([
+            'Etiqueta a remover: Estado: En proceso',
+            'Etiqueta a agregar: Estado: Cerrado',
+            "Accion: cerrar issue",
+        ])
+    require_confirmation(
+        "Modificar GitLab: publicar clave temporal y actualizar cierre.",
+        gitlab_finish_details,
     )
     end_note = gitlab.post(f"/projects/{quote(env_project, safe='')}/issues/{args.issue_iid}/notes", form={"body": note_end})
 

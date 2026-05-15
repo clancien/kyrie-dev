@@ -27,25 +27,30 @@ Ejecutar el flujo de Mesa de Ayuda SIDOT para solicitudes de clave, desde la rev
 - Usar el skill `sidot-connect` para buscar al usuario.
 - **Obligatorio**: Validar existencia y estado (habilitado) antes de proceder.
 - Guardar `usuarioId`, `login`, estado y link directo del usuario SIDOT sin parámetro `state` (`sidot_user.url`, formato `/pref/usuario/edit/<usuarioId>`) en `doc/.sidot/git-tickets.json` para el ticket correspondiente.
-- Si no existe o está deshabilitado, responder con plantilla de rechazo por alcance y cerrar.
+- Si no existe o está deshabilitado, responder con plantilla de rechazo por alcance y cerrar. **Antes de modificar GitLab**, pedir confirmación explícita al usuario indicando el issue, comentario/etiqueta/estado a aplicar y esperar aprobación.
 
 4. Iniciar tramitación:
+- **Antes de modificar GitLab**, pedir confirmación explícita al usuario indicando el issue, comentario/etiqueta/estado a aplicar y esperar aprobación.
 - Publicar plantilla de "en proceso".
 - Cambiar etiquetas/estado del work item a en curso.
-- Enviar solicitud de validación al equipo administrador SIDOT. Para esto generar un link en formato "mailto:"
+- Enviar solicitud de validación al equipo administrador SIDOT. Para esto generar un link en formato "mailto:" y entregarlo por pantalla al usuario.
 
 5. Aplicar reinicio de clave:
 - Leer `usuarioId` y `login` desde `doc/.sidot/git-tickets.json` para asegurar consistencia.
 - Generar clave temporal robusta de 20 caracteres con símbolos.
+- **Antes de modificar SIDOT**, pedir confirmación explícita al usuario indicando `usuarioId`, `login` y acción de reinicio de clave, sin exponer la clave temporal.
 - Aplicar cambio de clave en SIDOT.
 - **Obligatorio**: Verificar que el login con la nueva clave funciona antes de informar al usuario.
 
 6. Informar y cerrar:
+- **Antes de modificar GitLab**, pedir confirmación explícita al usuario indicando el comentario de entrega y el cierre/etiquetas a aplicar.
 - Publicar plantilla de entrega de clave temporal.
 - Marcar item como cerrado y actualizar estado en `doc/.sidot/git-tickets.json`.
 
 ## Reglas
 
+- **Confirmación obligatoria antes de modificar datos**: Antes de cualquier acción que modifique datos en GitLab o SIDOT, pedir confirmación explícita al usuario y esperar respuesta afirmativa. Esto aplica a publicar notas, cambiar etiquetas, cerrar/reabrir issues, cambiar estado de work items, reiniciar claves, guardar formularios SIDOT o cualquier `POST`/`PUT`/`PATCH`/`DELETE` con efecto persistente. No asumir confirmación por contexto, urgencia, automatización o ejecución previa.
+- **Lecturas sin confirmación**: Consultas `GET`, búsquedas, validaciones y generación de `mailto:` no requieren confirmación si no persisten cambios en GitLab o SIDOT.
 - **Persistencia de Datos**: Mantener `doc/.sidot/git-tickets.json` actualizado con el mapeo `issue_iid -> {usuario_sidot_id, login, nombre, rut, estado}`.
 - **Validación Previa**: No intentar modificar una clave sin haber validado primero la existencia y estado activo del usuario en SIDOT.
 - **Verificación Post-Acción**: Tras un cambio de clave, realizar una prueba de login (vía script o manual) para confirmar que la nueva clave es válida.
@@ -87,6 +92,8 @@ python3 .agents/skills/sidot-mesa-ayuda/assets/reset_password_from_issue.py \
   --project-root "$PWD" \
   --issue-iid 102
 ```
+
+La automatización debe solicitar confirmación interactiva antes de cada modificación persistente en GitLab o SIDOT. Si la ejecución no tiene terminal interactiva, debe detenerse antes de modificar datos.
 
 Opcional:
 
