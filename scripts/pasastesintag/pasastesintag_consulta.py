@@ -2,7 +2,8 @@
 """Consulta de deudas en pasastesintag.cl.
 
 Implementa el flujo observado en el frontend público:
-1. GET /resumen-pagos y extrae el JWT temporal de __NEXT_DATA__
+1. GET /resumen-pagos y extrae el JWT temporal de la cookie authorization
+   o desde __NEXT_DATA__ en versiones antiguas del frontend
 2. Genera un token de reCAPTCHA invisible usando la sitekey pública
 3. POST /api/consulta_patente con patente + token + authorization
 
@@ -76,10 +77,17 @@ def get_jwt(session: requests.Session) -> str:
         timeout=DEFAULT_TIMEOUT,
     )
     response.raise_for_status()
+
+    jwt = response.cookies.get("authorization") or session.cookies.get("authorization")
+    if jwt:
+        return jwt
+
     next_data = extract_next_data(response.text)
     jwt = next_data.get("props", {}).get("pageProps", {}).get("jwt")
     if not jwt:
-        raise PasasteSinTagError("No se pudo extraer el jwt temporal desde __NEXT_DATA__.")
+        raise PasasteSinTagError(
+            "No se pudo extraer el jwt temporal desde cookie authorization ni desde __NEXT_DATA__."
+        )
     return jwt
 
 

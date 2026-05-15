@@ -2,6 +2,7 @@
 .codex
 .agents/skills/bmad-*
 _bmad
+.agents
 .vscode/
 .idea/
 *.swp
@@ -26,4 +27,4 @@ scripts/bancochile.zip
 
 # Pasate sin tag
 data/logs/**
-.agents/
+
