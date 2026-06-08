@@ -1,0 +1,4 @@
+interface:
+  display_name: "Java Legacy Maven"
+  short_description: "Java Maven legacy app guidance"
+  default_prompt: "Use $java-legacy-maven to make a minimal safe change in this legacy Maven Java application."

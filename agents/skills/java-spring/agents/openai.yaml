@@ -1,0 +1,4 @@
+interface:
+  display_name: "Java Spring"
+  short_description: "Spring Boot backend guidance"
+  default_prompt: "Use $java-spring to implement and test a focused Spring backend change."

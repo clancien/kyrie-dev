@@ -1,0 +1,29 @@
+{
+    "trello-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "TRELLO_API_KEY=",
+        "-e",
+        "TRELLO_TOKEN=",
+        "-e",
+        "TRELLO_BASE_URL=https://api.trello.com/1",
+        "trello-mcp-server"
+      ],
+      "disabledTools": [
+        "create_list",
+        "create_card",
+        "move_card",
+        "add_comment",
+        "archive_card",
+        "archive_list",
+        "delete_board",
+        "update_list_name",
+        "update_card_name"
+      ],
+      "disabled": true
+    }
+}

@@ -1,8 +1,5 @@
 # Repository Guidelines
 
-## Inicio
-- Al comenzar cada sesión, lee este `AGENTS.md` antes de hacer cambios.
-
 ## Source Of Truth
 - Prioriza el código y estructura actual del repositorio por sobre documentos antiguos.
 - No asumas funcionalidades completas solo porque hay dependencias instaladas.
@@ -18,10 +15,6 @@
 - Frameworks principales:
 - Base de datos y servicios externos:
 - Forma de ejecución local: (nativa, Docker, etc.)
-
-## Skills
-- Usar los skills disponibles en `.agents/skills/index.md` cuando es adecuado.
-- Actualiza la lista de skills disponibles y su descripción si haces cambios en ellos.
 
 ## Commands
 - Comando de arranque local:
@@ -72,14 +65,3 @@ Don't:
 - Documentar configuración requerida vía variables de entorno.
 - Tratar archivos de configuración sensible como material restringido.
 
-## Actualización Operativa
-- Cuando el usuario lo solicite, registra decisiones prácticas en este mismo AGENTS.md o propone mejoras uno de los skills disponibles, ademas guarda comandos repetibles y reglas nuevas acordadas durante el trabajo.
-- Cuando el usuario lo solicite, o cuando el usuario pide cerrar un issue, tarea o work item; registra decisiones prácticas en doc/bitacora.md, usando la `Plantilla Bitácora Operativa`
-
-### Plantilla Bitácora Operativa    
-- Fecha:
-- Objetivo de la sesión:
-- Cambios realizados:
-- Decisiones tomadas:
-- Comandos útiles:
-- Pendientes:

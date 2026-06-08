@@ -1,0 +1,4 @@
+version: 1
+display_name: Gmail Connect
+short_description: Leer correos y crear borradores por Gmail API OAuth2.
+default_prompt: Usa este skill para consultar correos y crear drafts en Gmail con credenciales cargadas desde .env.

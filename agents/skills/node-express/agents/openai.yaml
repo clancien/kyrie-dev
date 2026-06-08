@@ -1,0 +1,4 @@
+interface:
+  display_name: "Node Express"
+  short_description: "Express backend implementation guidance"
+  default_prompt: "Use $node-express to implement and test a focused Express backend change."
