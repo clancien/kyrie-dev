@@ -3,6 +3,7 @@
 .agents/skills/bmad-*
 _bmad
 .agents
+.claude
 .vscode/
 .idea/
 *.swp

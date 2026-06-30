@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# deprecated !!!! use init-workspace.sh
 set -euo pipefail
 
 DEV_ROOT="${HOME}/workspace/dev"
