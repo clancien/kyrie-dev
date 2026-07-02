@@ -1,6 +1,6 @@
 ---
 name: gitlab-connect
-description: "Conectar y operar GitLab por API usando credenciales en `.env` para validar acceso, listar proyectos y consultar merge requests de forma reproducible. Usar cuando se necesite trabajar con repositorios, MRs o metadata de GitLab desde terminal/script en este workspace."
+description: "Conectar y operar GitLab por API usando credenciales en `.env` para validar acceso, listar proyectos, consultar merge requests y administrar milestones de proyecto/issue de forma reproducible. Usar cuando se necesite trabajar con repositorios, MRs, issues o metadata de GitLab desde terminal/script en este workspace."
 ---
 
 # GitLab
@@ -11,7 +11,7 @@ description: "Conectar y operar GitLab por API usando credenciales en `.env` par
 2. Cargar variables de entorno en la sesión shell.
 3. Validar autenticación con `ping`.
 4. Listar proyectos disponibles para confirmar alcance de permisos.
-5. Consultar merge requests del proyecto objetivo.
+5. Consultar merge requests, issues o milestones del proyecto objetivo.
 
 ## Variables `.env`
 
@@ -50,6 +50,18 @@ python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py issues --project-i
 
 # Listar Issues de un proyecto explícito
 python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py issues --project-id $GITLAB_PROJECT_ID --state all
+
+# Listar milestones activos del proyecto
+python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py milestones --project-id $GITLAB_PROJECT_ID --state active
+
+# Buscar milestone por título exacto
+python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py milestones --project-id $GITLAB_PROJECT_ID --title "Mantenciones Octubre 2025"
+
+# Crear milestone mensual
+python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py milestone-create --project-id $GITLAB_PROJECT_ID --title "Mantenciones Octubre 2025"
+
+# Asignar milestone a un issue
+python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py milestone-assign --project-id $GITLAB_PROJECT_ID --issue-iid 123 --milestone-id 456
 ```
 
 ## Reglas
@@ -57,7 +69,7 @@ python3 .agents/skills/gitlab-connect/scripts/gitlab_fetch.py issues --project-i
 - No hardcodear tokens ni URLs de instancia en scripts.
 - Priorizar lectura desde variables de entorno.
 - Ante error HTTP, registrar mensaje exacto de API para trazabilidad.
-- Usar este skill como base y extender scripts para endpoints adicionales (issues, pipelines, releases) cuando sea necesario.
+- Usar este skill como base y extender scripts para endpoints adicionales (issues, milestones, pipelines, releases) cuando sea necesario.
 
 ## API Reutilizable
 
@@ -78,6 +90,10 @@ Clase:
 - `get(path: str, query: dict | None = None) -> dict | list`
 - `post(path: str, form: dict | None = None) -> dict | list`
 - `put(path: str, form: dict | None = None) -> dict | list`
+- `list_project_milestones(project_id: str, query: dict | None = None) -> dict | list`
+- `find_project_milestone(project_id: str, title: str) -> dict | None`
+- `create_project_milestone(project_id: str, title: str, description: str | None = None, due_date: str | None = None, start_date: str | None = None) -> dict`
+- `assign_issue_milestone(project_id: str, issue_iid: str, milestone_id: str | int) -> dict`
 - `request(method, path, query=None, form=None) -> dict | list`:
   - Usa `PRIVATE-TOKEN`.
   - Codifica `form` como `application/x-www-form-urlencoded`.
@@ -98,4 +114,5 @@ client = GitLabClient.from_project_root(Path("/ruta/proyecto"))
 me = client.get("/user")
 issues = client.get("/projects/123/issues", query={"state": "opened"})
 note = client.post("/projects/123/issues/10/notes", form={"body": "Comentario"})
+milestone = client.find_project_milestone("123", "Mantenciones Octubre 2025")
 ```

@@ -81,6 +81,54 @@ def cmd_issues(client: GitLabClient, project_id: str, state: str, per_page: int)
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
 
+def cmd_milestones_list(client: GitLabClient, project_id: str, state: str | None, title: str | None, search: str | None, per_page: int):
+    query = {"per_page": per_page}
+    if state:
+        query["state"] = state
+    if title:
+        query["title"] = title
+    if search:
+        query["search"] = search
+    data = client.list_project_milestones(project_id, query=query)
+    out = [
+        {
+            "id": milestone.get("id"),
+            "iid": milestone.get("iid"),
+            "title": milestone.get("title"),
+            "state": milestone.get("state"),
+            "description": milestone.get("description"),
+            "due_date": milestone.get("due_date"),
+            "start_date": milestone.get("start_date"),
+            "web_url": milestone.get("web_url"),
+        }
+        for milestone in data
+    ]
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+
+
+def cmd_milestones_create(
+    client: GitLabClient,
+    project_id: str,
+    title: str,
+    description: str | None,
+    due_date: str | None,
+    start_date: str | None,
+):
+    data = client.create_project_milestone(
+        project_id,
+        title,
+        description=description,
+        due_date=due_date,
+        start_date=start_date,
+    )
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def cmd_milestones_assign(client: GitLabClient, project_id: str, issue_iid: str, milestone_id: str):
+    data = client.assign_issue_milestone(project_id, issue_iid, milestone_id)
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(description="GitLab helper (auth via .env)")
     parser.add_argument("--project-root", default=str(Path.cwd().resolve()))
@@ -101,6 +149,25 @@ def main():
     p_issues.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
     p_issues.add_argument("--state", choices=["opened", "closed", "all"], default="opened")
     p_issues.add_argument("--per-page", type=int, default=20)
+
+    p_milestones = sub.add_parser("milestones", help="List project milestones")
+    p_milestones.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
+    p_milestones.add_argument("--state", choices=["active", "closed"], default=None)
+    p_milestones.add_argument("--title", default=None)
+    p_milestones.add_argument("--search", default=None)
+    p_milestones.add_argument("--per-page", type=int, default=20)
+
+    p_milestone_create = sub.add_parser("milestone-create", help="Create a project milestone")
+    p_milestone_create.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
+    p_milestone_create.add_argument("--title", required=True)
+    p_milestone_create.add_argument("--description", default=None)
+    p_milestone_create.add_argument("--due-date", default=None)
+    p_milestone_create.add_argument("--start-date", default=None)
+
+    p_milestone_assign = sub.add_parser("milestone-assign", help="Assign a milestone to an issue")
+    p_milestone_assign.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
+    p_milestone_assign.add_argument("--issue-iid", required=True)
+    p_milestone_assign.add_argument("--milestone-id", required=True)
 
     args = parser.parse_args()
 
@@ -126,6 +193,24 @@ def main():
             print("Missing project id. Set GITLAB_PROJECT_ID or pass --project-id", file=sys.stderr)
             sys.exit(2)
         cmd_issues(client, project_id, args.state, args.per_page)
+    elif args.cmd == "milestones":
+        project_id = args.project_id.strip()
+        if not project_id:
+            print("Missing project id. Set GITLAB_PROJECT_ID or pass --project-id", file=sys.stderr)
+            sys.exit(2)
+        cmd_milestones_list(client, project_id, args.state, args.title, args.search, args.per_page)
+    elif args.cmd == "milestone-create":
+        project_id = args.project_id.strip()
+        if not project_id:
+            print("Missing project id. Set GITLAB_PROJECT_ID or pass --project-id", file=sys.stderr)
+            sys.exit(2)
+        cmd_milestones_create(client, project_id, args.title, args.description, args.due_date, args.start_date)
+    elif args.cmd == "milestone-assign":
+        project_id = args.project_id.strip()
+        if not project_id:
+            print("Missing project id. Set GITLAB_PROJECT_ID or pass --project-id", file=sys.stderr)
+            sys.exit(2)
+        cmd_milestones_assign(client, project_id, args.issue_iid, args.milestone_id)
 
 
 if __name__ == "__main__":

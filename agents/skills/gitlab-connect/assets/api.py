@@ -5,6 +5,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from urllib.parse import quote
 
 
 def load_env_file(env_path: Path) -> dict[str, str]:
@@ -74,3 +75,41 @@ class GitLabClient:
 
     def put(self, path: str, form: dict | None = None):
         return self.request("PUT", path, form=form)
+
+    def list_project_milestones(self, project_id: str, query: dict | None = None):
+        path = f"/projects/{quote(project_id, safe='')}/milestones"
+        return self.get(path, query=query)
+
+    def find_project_milestone(self, project_id: str, title: str):
+        milestones = self.list_project_milestones(project_id, query={"title": title})
+        if isinstance(milestones, dict):
+            return milestones if milestones.get("title") == title else None
+
+        matches = [milestone for milestone in milestones if milestone.get("title") == title]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            raise RuntimeError(f"Ambiguous GitLab milestone title: {title}")
+        return matches[0]
+
+    def create_project_milestone(
+        self,
+        project_id: str,
+        title: str,
+        description: str | None = None,
+        due_date: str | None = None,
+        start_date: str | None = None,
+    ):
+        path = f"/projects/{quote(project_id, safe='')}/milestones"
+        form: dict[str, str] = {"title": title}
+        if description:
+            form["description"] = description
+        if due_date:
+            form["due_date"] = due_date
+        if start_date:
+            form["start_date"] = start_date
+        return self.post(path, form=form)
+
+    def assign_issue_milestone(self, project_id: str, issue_iid: str, milestone_id: str | int):
+        path = f"/projects/{quote(project_id, safe='')}/issues/{issue_iid}"
+        return self.put(path, form={"milestone_id": str(milestone_id)})

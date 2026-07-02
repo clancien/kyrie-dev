@@ -1,4 +1,4 @@
 interface:
   display_name: "GitLab Connect"
-  short_description: "Conecta y opera GitLab API con credenciales .env."
-  default_prompt: "Use this skill to connect to GitLab using .env credentials, validate access, and fetch project and merge request data reproducibly."
+  short_description: "Conecta y opera GitLab API con credenciales .env, issues y milestones."
+  default_prompt: "Use this skill to connect to GitLab using .env credentials, validate access, and fetch project, issue, merge request, and milestone data reproducibly."
