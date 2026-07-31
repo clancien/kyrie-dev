@@ -33,4 +33,4 @@ data/logs/**
 agents/skills/sidot-connect/**
 agents/skills/sidot-mesa-ayuda/**
 agents/skills/trello-card-resolution/**
-
+agents/skills/cyber-publish/**

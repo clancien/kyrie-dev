@@ -76,6 +76,28 @@ class GitLabClient:
     def put(self, path: str, form: dict | None = None):
         return self.request("PUT", path, form=form)
 
+    def list_project_branches(
+        self,
+        project_id: str,
+        search: str | None = None,
+        per_page: int = 100,
+        max_pages: int = 10,
+    ):
+        """Ramas del proyecto, paginando hasta agotar (GitLab tope per_page=100)."""
+        path = f"/projects/{quote(project_id, safe='')}/repository/branches"
+        ramas: list[dict] = []
+        for page in range(1, max_pages + 1):
+            query = {"per_page": min(per_page, 100), "page": page}
+            if search:
+                query["search"] = search
+            lote = self.get(path, query=query)
+            if not lote:
+                break
+            ramas.extend(lote)
+            if len(lote) < query["per_page"]:
+                break
+        return ramas
+
     def list_project_milestones(self, project_id: str, query: dict | None = None):
         path = f"/projects/{quote(project_id, safe='')}/milestones"
         return self.get(path, query=query)

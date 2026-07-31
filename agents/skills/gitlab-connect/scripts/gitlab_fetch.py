@@ -40,6 +40,26 @@ def cmd_projects(client: GitLabClient, search: str | None, per_page: int):
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
 
+def cmd_branches(client: GitLabClient, project_id: str, search: str | None, per_page: int):
+    data = client.list_project_branches(project_id, search=search, per_page=per_page)
+    out = [
+        {
+            "name": b.get("name"),
+            "default": b.get("default"),
+            "merged": b.get("merged"),
+            "protected": b.get("protected"),
+            "committed_date": (b.get("commit") or {}).get("committed_date"),
+            "author": (b.get("commit") or {}).get("author_name"),
+            "short_id": (b.get("commit") or {}).get("short_id"),
+            "title": (b.get("commit") or {}).get("title"),
+            "web_url": b.get("web_url"),
+        }
+        for b in data
+    ]
+    out.sort(key=lambda b: b["committed_date"] or "", reverse=True)
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+
+
 def cmd_mrs(client: GitLabClient, project_id: str, state: str, per_page: int):
     query = {"state": state, "per_page": per_page, "order_by": "updated_at", "sort": "desc"}
     from urllib.parse import quote
@@ -140,6 +160,11 @@ def main():
     p_projects.add_argument("--search", default=None, help="Search project by name/path")
     p_projects.add_argument("--per-page", type=int, default=20)
 
+    p_branches = sub.add_parser("branches", help="List repository branches for a project")
+    p_branches.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
+    p_branches.add_argument("--search", default=None, help="Filter by branch name substring")
+    p_branches.add_argument("--per-page", type=int, default=100)
+
     p_mrs = sub.add_parser("mrs", help="List merge requests for a project")
     p_mrs.add_argument("--project-id", default=os.getenv("GITLAB_PROJECT_ID", ""))
     p_mrs.add_argument("--state", choices=["opened", "closed", "locked", "merged", "all"], default="opened")
@@ -181,6 +206,12 @@ def main():
         cmd_ping(client)
     elif args.cmd == "projects":
         cmd_projects(client, args.search, args.per_page)
+    elif args.cmd == "branches":
+        project_id = args.project_id.strip()
+        if not project_id:
+            print("Missing project id. Set GITLAB_PROJECT_ID or pass --project-id", file=sys.stderr)
+            sys.exit(2)
+        cmd_branches(client, project_id, args.search, args.per_page)
     elif args.cmd == "mrs":
         project_id = args.project_id.strip()
         if not project_id:
