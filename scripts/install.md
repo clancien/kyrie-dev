@@ -14,7 +14,8 @@ cd /path/to/workspace/proyect
 # Initialize specify ( for codex ) 
 specify init --here --integration codex
 
-# Initialize bmad ( for codex )
+# Initialize bmad ( for codex and claude )
+npx bmad-method install
 
 # Import skills
 
