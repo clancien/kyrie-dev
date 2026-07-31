@@ -1,0 +1,4 @@
+interface:
+  display_name: "Multimedia"
+  short_description: "Crear, editar y transcribir audio/video"
+  default_prompt: "Use $multimedia to create, trim, transcribe, and compose video or audio with the bundled Python scripts."
