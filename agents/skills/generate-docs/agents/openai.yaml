@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Docs"
+  short_description: "Genera un visor HTML desde una carpeta"
+  default_prompt: "Use $generate-docs to generate a self-contained documentation site from this directory."
