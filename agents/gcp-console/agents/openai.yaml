@@ -1,0 +1,7 @@
+interface:
+  display_name: "GCP Console"
+  short_description: "Consulta APIs de Google Cloud"
+  default_prompt: "Use $gcp-console to inspect Google Cloud project metadata, enabled APIs, IAM, service accounts, Secret Manager, and Cloud Run using `.google-cloud-service-key.json`."
+
+policy:
+  allow_implicit_invocation: false
