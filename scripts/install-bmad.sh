@@ -62,12 +62,12 @@ fi
 
 npx bmad-method install \
   --directory "$TARGET_DIRECTORY" \
-  --modules bmm,core,tea,bmb,bmad-loop,cis,wds \
+  --modules bmm,core,tea,bmb,bmad-loop,cis \
   --tools claude-code,codex \
   --user-name "$USER_NAME" \
   --communication-language Spanish \
   --document-output-language Spanish \
-  --output-folder doc \
+  --output-folder docs \
   --set core.project_name="$PROJECT_NAME" \
   --all-stable \
   --yes
