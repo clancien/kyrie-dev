@@ -4,12 +4,12 @@
 # inspected and extracted successfully.  The previous version is retained
 # under ~/.local/state/antigravity-updater/backups for rollback.
 
-set -Eeuo pipefail
+set -euo pipefail
 IFS=$'\n\t'
 
 readonly DOWNLOAD_PAGE='https://antigravity.google/download'
-readonly APP_DIR='/home/clancien/bin/Antigravity-x64'
-readonly IDE_DIR='/home/clancien/bin/Antigravity_IDE'
+readonly APP_DIR="$HOME/bin/Antigravity-x64"
+readonly IDE_DIR="$HOME/bin/Antigravity_IDE"
 readonly STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/antigravity-updater"
 readonly BACKUP_DIR="$STATE_DIR/backups"
 readonly LOCK_FILE="$STATE_DIR/update.lock"
@@ -57,27 +57,35 @@ require_command curl
 require_command tar
 require_command awk
 require_command sort
-require_command pgrep
 require_command flock
 require_command grep
 require_command cut
 require_command find
 require_command dirname
+require_command sed
+require_command mktemp
+require_command date
+require_command readlink
+require_command xargs
 
 mkdir -p -- "$STATE_DIR" "$BACKUP_DIR"
 exec 9>"$LOCK_FILE"
 flock -n 9 || die 'Ya hay otra actualización de Antigravity en curso.'
 
 is_running() {
-  # Coincidencia exacta de la ruta del ejecutable: no detiene procesos ajenos.
-  pgrep -f -x "$1( .*)?" >/dev/null 2>&1
+  local dir=$1 pid exe
+  for pid in /proc/[0-9]*; do
+    exe=$(readlink -- "$pid/exe" 2>/dev/null) || continue
+    [[ "$exe" == "$dir"/* ]] && return 0
+  done
+  return 1
 }
 
 ensure_closed() {
-  local executable
-  for executable in "$APP_DIR/antigravity" "$IDE_DIR/antigravity-ide" "$IDE_DIR/bin/antigravity-ide"; do
-    if [[ -x "$executable" ]] && is_running "$executable"; then
-      die "Antigravity está abierto ($executable). Ciérralo por completo y vuelve a ejecutar el script."
+  local dir
+  for dir in "$APP_DIR" "$IDE_DIR"; do
+    if is_running "$dir"; then
+      die "Antigravity está abierto ($dir). Ciérralo por completo y vuelve a ejecutar el script."
     fi
   done
 }
@@ -85,7 +93,7 @@ ensure_closed() {
 version_from_manifest() {
   local manifest=$1
   [[ -r "$manifest" ]] || return 1
-  awk -F'"' '/"version"[[:space:]]*:/ { print $4; exit }' "$manifest"
+  awk -F'"' '/"version"[[:space:]]*:/ { print $4; found=1; exit } END { exit !found }' "$manifest"
 }
 
 version_from_asar() {
@@ -96,16 +104,21 @@ version_from_asar() {
 
 saved_version() {
   local name=$1
-  [[ -r "$STATE_DIR/$name.version" ]] && <"$STATE_DIR/$name.version"
+  [[ -s "$STATE_DIR/$name.version" ]] && cat -- "$STATE_DIR/$name.version"
 }
 
 local_version() {
-  local name=$1 directory=$2 manifest
+  local name=$1 directory=$2 manifest detected saved
   manifest="$directory/resources/app/package.json"
-  saved_version "$name" ||
-    version_from_manifest "$manifest" ||
-    version_from_asar "$directory/resources/app.asar" ||
-    true
+  detected=$(version_from_manifest "$manifest" || version_from_asar "$directory/resources/app.asar" || true)
+  saved=$(saved_version "$name" || true)
+  # The archive URL includes a build number that is not normally stored in
+  # package.json. Reuse it only when it belongs to the installed semver.
+  if [[ -n "$saved" && -n "$detected" && "${saved%%-*}" == "$detected" ]]; then
+    printf '%s\n' "$saved"
+  else
+    printf '%s\n' "${detected:-$saved}"
+  fi
 }
 
 version_is_newer() {
@@ -117,9 +130,8 @@ version_is_newer() {
 
 extract_url() {
   local page=$1 pattern=$2 url
-  # The page may encode slashes and ampersands as JSON escapes; normalize only
-  # those HTML/JSON escapes before selecting the HTTPS archive URL.
-  url=$(printf '%s' "$page" | tr '\\' ' ' | sed 's#\\u0026#\&#g' |
+  # The page may encode URLs as JSON strings. Decode only URL escapes.
+  url=$(printf '%s' "$page" | sed -e 's#\\/#/#g' -e 's#\\u002[Ff]#/#g' -e 's#\\u0026#\&#g' |
     grep -oE "https://[^\"'[:space:]\\]+$pattern" | head -n1 || true)
   [[ -n "$url" ]] || return 1
   printf '%s\n' "$url"
@@ -135,26 +147,38 @@ validate_archive() {
 
 find_extracted_root() {
   local directory=$1 binary_name=$2 binary_path
-  binary_path=$(find "$directory" -type f -name "$binary_name" -print -quit)
-  [[ -n "$binary_path" ]] || return 1
-  dirname "$binary_path"
+  while IFS= read -r -d '' binary_path; do
+    [[ -d "$(dirname -- "$binary_path")/resources" ]] || continue
+    dirname -- "$binary_path"
+    return 0
+  done < <(find "$directory" -type f -name "$binary_name" -print0)
+  return 1
 }
 
-restore_sandbox_permissions() {
+configure_sandbox_permissions() {
   local directory sandbox
   directory=$1
   sandbox="$directory/chrome-sandbox"
   [[ -e "$sandbox" ]] || return 0
-  # Electron needs this helper to remain owned by root with setuid enabled on
-  # systems where the current installation uses the setuid sandbox.
-  if [[ -e "$APP_DIR/chrome-sandbox" || -e "$IDE_DIR/chrome-sandbox" ]]; then
-    sudo chown root:root -- "$sandbox"
-    sudo chmod 4755 -- "$sandbox"
-  fi
+  command -v sudo >/dev/null 2>&1 || return 1
+  sudo -- sh -c 'chown root:root -- "$1" && chmod 4755 -- "$1"' _ "$sandbox"
+}
+
+post_setup() {
+  local directory
+  for directory in "$APP_DIR" "$IDE_DIR"; do
+    configure_sandbox_permissions "$directory" || die "No se pudieron configurar los permisos de $directory/chrome-sandbox."
+  done
+}
+
+prune_backups() {
+  local name=$1
+  find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -name "$name-*" -printf '%T@ %p\n' |
+    sort -rn | tail -n +3 | cut -d' ' -f2- | xargs -r -d '\n' rm -rf --
 }
 
 install_one() {
-  local name=$1 target=$2 remote_version=$3 url=$4 current stage extracted_root backup stamp
+  local name=$1 target=$2 remote_version=$3 url=$4 current archive stage extracted_root backup stamp
   [[ -d "$target" ]] || die "No existe la instalación de $name: $target"
   current=$(local_version "$name" "$target")
   printf '%s: instalada=%s, disponible=%s\n' "$name" "${current:-desconocida}" "$remote_version"
@@ -191,32 +215,36 @@ install_one() {
   backup="$BACKUP_DIR/${name}-${stamp}"
   mv -- "$target" "$backup"
   if ! mv -- "$extracted_root" "$target"; then
+    rm -rf -- "$target"
     mv -- "$backup" "$target"
     die "No se pudo instalar $name; se restauró la versión anterior."
   fi
-  if ! restore_sandbox_permissions "$target"; then
+  if ! configure_sandbox_permissions "$target"; then
     rm -rf -- "$target"
     mv -- "$backup" "$target"
     die "No se pudieron configurar los permisos del sandbox; se restauró la versión anterior."
   fi
   printf '%s\n' "$remote_version" >"$STATE_DIR/$name.version"
   note "$name actualizado a $remote_version. Respaldo: $backup"
+  prune_backups "$name"
 }
 
 rollback() {
   local backup="$BACKUP_DIR/$ROLLBACK_TARGET" target
+  [[ "$ROLLBACK_TARGET" != */* ]] || die 'Nombre de respaldo inválido.'
+  [[ "$ROLLBACK_TARGET" == antigravity-* || "$ROLLBACK_TARGET" == ide-* ]] || die 'El nombre de respaldo no corresponde a una instalación conocida.'
   [[ -d "$backup" ]] || die "No existe el respaldo: $backup"
   ensure_closed
   case "$ROLLBACK_TARGET" in
     antigravity-*) target=$APP_DIR ;;
     ide-*) target=$IDE_DIR ;;
-    *) die 'El nombre de respaldo no corresponde a una instalación conocida.' ;;
   esac
   (( DRY_RUN )) && { note "Se restauraría $backup en $target"; return; }
-  local displaced="$BACKUP_DIR/pre-rollback-$(date '+%Y%m%d-%H%M%S')"
+  local prefix=${ROLLBACK_TARGET%%-*}
+  local displaced="$BACKUP_DIR/${prefix}-prerollback-$(date '+%Y%m%d-%H%M%S')"
   mv -- "$target" "$displaced"
   mv -- "$backup" "$target"
-  restore_sandbox_permissions "$target"
+  rm -f -- "$STATE_DIR/$prefix.version"
   note "Rollback aplicado. La versión reemplazada quedó en: $displaced"
 }
 
@@ -225,17 +253,20 @@ if [[ -n "$ROLLBACK_TARGET" ]]; then
   exit 0
 fi
 
-ensure_closed
-WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/antigravity-update.XXXXXX")
+(( DRY_RUN )) || ensure_closed
+# Keep staging and the installed directories on the same filesystem. This
+# makes the directory replacements atomic renames rather than copy-and-delete.
+WORK_DIR=$(mktemp -d "$(dirname -- "$APP_DIR")/.antigravity-update.XXXXXX")
 # Google currently serves this page with gzip content encoding even when curl
 # does not advertise it.  --compressed both requests and decodes that response.
 page=$(curl --fail --location --compressed --proto '=https' --tlsv1.2 --retry 3 "$DOWNLOAD_PAGE")
 
 app_url=$(extract_url "$page" '/linux-x64/Antigravity\.tar\.gz') || die 'No se encontró la descarga Linux x64 de Antigravity en la página oficial.'
 ide_url=$(extract_url "$page" '/linux-x64/Antigravity(%20| )IDE\.tar\.gz') || die 'No se encontró la descarga Linux x64 de Antigravity IDE en la página oficial.'
-app_remote=$(printf '%s\n' "$app_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-[0-9]+' | head -n1 | cut -d- -f1 || true)
-ide_remote=$(printf '%s\n' "$ide_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-[0-9]+' | head -n1 | cut -d- -f1 || true)
+app_remote=$(printf '%s\n' "$app_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-[0-9]+' | head -n1 || true)
+ide_remote=$(printf '%s\n' "$ide_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-[0-9]+' | head -n1 || true)
 [[ -n "$app_remote" && -n "$ide_remote" ]] || die 'No se pudieron identificar las versiones oficiales en la página de descarga.'
 
 install_one antigravity "$APP_DIR" "$app_remote" "$app_url"
 install_one ide "$IDE_DIR" "$ide_remote" "$ide_url"
+post_setup
