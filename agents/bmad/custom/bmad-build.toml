@@ -1,0 +1,128 @@
+# _bmad/custom/bmad-build.toml
+# Revisión ágil: tres lentes independientes y centrados en regresiones reales.
+# Invocación de subagentes con modelos livianos (Haiku 4.5 en Claude / GPT-5.6 Luna en Codex / Gemini Flash).
+
+[workflow]
+
+[[workflow.review_layers]]
+id = "blind-hunter"
+name = "Corrección y contratos"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+#
+# Inspecciona el diff proporcionado. Revisa únicamente fallos concretos introducidos
+# por este cambio: comportamiento incorrecto, contratos incompatibles, datos inválidos
+# o casos comunes vacíos o nulos.
+
+# No revises estilo, rendimiento ni mejoras opcionales. No inventes escenarios.
+# Si no encuentras un problema verificable, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, consecuencia y corrección.
+
+# CONTENIDO:
+# {diff_file}
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """
+
+[[workflow.review_layers]]
+id = "edge-case-hunter"
+name = "Casos de borde"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+
+# Inspecciona el diff proporcionado. Revisa únicamente casos de borde no manejados
+# introducidos o afectados por este cambio (ej. listas vacías, valores nulos, límites
+# de rango, caracteres especiales o fallos de red/BD).
+
+# No revises estilo, rendimiento ni mejoras opcionales. No inventes escenarios teóricos.
+# Si no encuentras un caso de borde no manejado, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, caso de borde y riesgo.
+
+# CONTENIDO:
+# {diff_file}
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """
+
+[[workflow.review_layers]]
+id = "verification-gap"
+name = "Regresiones sin verificación"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+
+# Inspecciona el diff proporcionado y, solo para cada comportamiento observable que
+# haya cambiado, comprueba si una regresión común haría fallar una prueba existente.
+# Informa únicamente huecos demostrables: indica qué prueba o búsqueda revisaste y
+# qué aserción o caso falta.
+
+# No exijas cobertura exhaustiva, pruebas por rutina ni pruebas para cambios no
+# conductuales. No revises estilo, rendimiento ni mejoras opcionales.
+# Si no encuentras un hueco verificable, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, regresión y prueba faltante.
+
+# CONTENIDO:
+# {diff_file}
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """
+
+# --- CAPAS ONE-SHOT ---
+
+[[workflow.oneshot_review_layers]]
+id = "blind-hunter"
+name = "Corrección y contratos (one-shot)"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+
+# Inspecciona directamente los archivos modificados del worktree y su diff. Revisa
+# únicamente fallos concretos introducidos por este cambio: comportamiento incorrecto,
+# contratos incompatibles, datos inválidos o casos comunes vacíos o nulos.
+
+# No revises estilo, rendimiento ni mejoras opcionales. No inventes escenarios.
+# Si no encuentras un problema verificable, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, consecuencia y corrección.
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """
+
+[[workflow.oneshot_review_layers]]
+id = "edge-case-hunter"
+name = "Casos de borde (one-shot)"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+
+# Inspecciona directamente los archivos modificados del worktree y su diff. Revisa únicamente
+# casos de borde no manejados introducidos o afectados por este cambio (ej. listas vacías, valores
+# nulos, límites de rango, caracteres especiales o fallos de red/BD).
+
+# No revises estilo, rendimiento ni mejoras opcionales. No inventes escenarios teóricos.
+# Si no encuentras un caso de borde no manejado, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, caso de borde y riesgo.
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """
+
+[[workflow.oneshot_review_layers]]
+id = "verification-gap"
+name = "Regresiones sin verificación (one-shot)"
+instruction = ""
+# """
+# Launch a context-free subagent using a lightweight model (Haiku 4.5 for Claude / GPT-5.6 Luna for Codex / Gemini Flash) with this prompt:
+
+# Inspecciona directamente los archivos modificados del worktree y su diff. Solo para
+# cada comportamiento observable que haya cambiado, comprueba si una regresión común
+# haría fallar una prueba existente. Informa únicamente huecos demostrables: indica
+# qué prueba o búsqueda revisaste y qué aserción o caso falta.
+
+# No exijas cobertura exhaustiva, pruebas por rutina ni pruebas para cambios no
+# conductuales. No revises estilo, rendimiento ni mejoras opcionales.
+# Si no encuentras un hueco verificable, responde exactamente: OK.
+# Por cada hallazgo, usa una sola línea con archivo:línea, regresión y prueba faltante.
+
+# No invoques skills. Devuelve solo el resultado de la revisión.
+# """

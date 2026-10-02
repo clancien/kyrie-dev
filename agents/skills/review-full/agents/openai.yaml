@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revisión completa"
+  short_description: "Auditoría profunda de cambios locales"
+  default_prompt: "Use $review-full to audit the local repository diff against its spec or story."

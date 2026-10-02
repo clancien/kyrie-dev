@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revisión simple"
+  short_description: "Revisión breve y verificable de diffs"
+  default_prompt: "Use $review-simple to review the local repository diff for concrete defects."
