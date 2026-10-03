@@ -60,9 +60,38 @@ if [[ -z "$PROJECT_NAME" ]]; then
   PROJECT_NAME="$(basename "$TARGET_DIRECTORY")"
 fi
 
+MODULES="core,bmm,bmad-loop,tea"
+
+ask_module() {
+  local question="$1"
+  local module="$2"
+  local answer
+
+  while true; do
+    if ! read -r -p "$question [s/N]: " answer; then
+      return 0
+    fi
+    case "$answer" in
+      s|S|si|Si|SI|sí|Sí|SÍ|y|Y|yes|Yes|YES)
+        MODULES+=",$module"
+        return 0
+        ;;
+      n|N|no|No|NO|"")
+        return 0
+        ;;
+      *)
+        echo "Responde s (sí) o n (no)."
+        ;;
+    esac
+  done
+}
+
+ask_module "¿Requieres creación y modificación de agentes o flujos de trabajo propios?" bmb
+ask_module "¿Requieres ideación de negocio, brainstorming y Design Thinking, como al empezar un proyecto por ejemplo?" cis
+
 npx bmad-method install \
   --directory "$TARGET_DIRECTORY" \
-  --modules bmm,core,tea,bmb,bmad-loop,cis \
+  --modules "$MODULES" \
   --tools claude-code,codex \
   --user-name "$USER_NAME" \
   --communication-language Spanish \
