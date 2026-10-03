@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dev Spec"
+  short_description: "Clarifica requerimientos y delega una spec BMAD"
+  default_prompt: "Usa $dev-spec para convertir mi requerimiento en una spec y proponer cómo implementarla."
