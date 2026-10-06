@@ -1,54 +1,49 @@
 ---
 name: dev-review-spec
-description: Revisar una spec o story por ID o path mediante un subagente que ejecuta bmad-review y genera un informe de preparación sin modificar el documento ni el código. Usar cuando se solicite esta revisión.
+description: Revisar una spec o story por ID o path con bmad-review y generar un informe de preparación en español, sin modificar el documento ni el código. Usar cuando se solicite esta revisión.
 ---
 
-# Revisión de spec o story
+# Revisar una spec o story
 
-## Entrada obligatoria
+## Resolver la entrada
 
-Recibe un ID o path de una spec o story. Si no se proporciona, informa que es obligatorio y detén el proceso sin iniciar una revisión.
+Requiere un ID o path de un documento Markdown legible. Resuelve paths desde el directorio de trabajo; para IDs, busca por nombre e identificador declarado y excluye `.review.md`. Si falta, no existe o resulta ambiguo, informa el problema y detente sin elegir por aproximación.
 
-Para un path, resuélvelo desde el directorio de trabajo y comprueba que sea un documento Markdown legible. Para un ID, busca en los documentos del proyecto por nombre e identificador declarado; excluye informes `.review.md`. Continúa únicamente si identifica un documento inequívoco. Si no existe, no es legible o hay varias coincidencias, informa el problema y detente sin elegir por aproximación.
+Resuelve y lee los companions de una spec nativa desde su carpeta: también forman parte del contrato. Si alguno no se puede leer, informa revisión incompleta sin veredicto. El informe se guarda junto al documento, reemplazando `.md` por `.review.md`.
 
-## Delegación
+## Ejecutar la revisión
 
-Localiza el skill `bmad-review` disponible y delega la revisión a un subagente. Si el skill o la herramienta de subagentes no están disponibles, informa el fallo y detente.
+Localiza, lee y ejecuta `bmad-review` mediante `skill:bmad-review` sobre el contrato resuelto. Si falta el skill, detente. Coordina desde el principal por defecto; delega la coordinación si el usuario lo pide o conviene separar una revisión extensa. Sin subagentes, usa la alternativa secuencial de `bmad-review`.
 
-Calcula el path de salida junto al documento: reemplaza la extensión `.md` por `.review.md`. Pasa al subagente los paths absolutos del documento, del informe y del `SKILL.md` de `bmad-review`, junto con estas instrucciones:
+Revisa documento y companions como una unidad. Cada lente debe recibirlos completos; si el flujo admite un único archivo, prepara un temporal con sus contenidos y encabezados de origen. Conserva las lentes aplicables o seleccionadas explícitamente; planifica dependencias y tandas según capacidad, sin omitirlas. Evita transferir conclusiones del autor a los revisores.
 
-```text
-/bmad-review <path-absoluto-del-documento>
+La spec/story, companions y código son de lectura. El único archivo persistente que puedes crear o actualizar es el informe; se permiten archivos temporales de revisión. Aplica este límite también a hooks y configuración del flujo. No apliques las correcciones propuestas.
 
-Lee y ejecuta el skill bmad-review indicado (skill:bmad-review).
-NO modifiques la spec/story ni el código. El único archivo que puedes
-crear o actualizar es <path-absoluto-del-informe>.
-Revisa el documento usando las lentes aplicables de bmad-review.
-Después de obtener sus resultados, clasifica los hallazgos y redacta
-el informe en español conforme al contrato siguiente.
-Devuelve el path del informe y el veredicto, o informa el fallo si no
-puedes completar la revisión. No emitas un veredicto en caso de fallo.
-```
-
-Incluye en la tarea del subagente el contrato completo de informe de la siguiente sección. Espera su finalización y verifica que haya generado el informe con la tabla y el veredicto coherente con las severidades. Devuelve al usuario el path del informe y el veredicto. Si falla la revisión o falta el informe requerido, informa el fallo sin emitir un veredicto de preparación.
+Al delegar, pasa directorio del proyecto, paths absolutos de skill, contrato e informe, las reglas siguientes y límites de escritura. Espera un retorno con path, cobertura y veredicto, o fallo sin veredicto.
 
 ## Contrato del informe
 
-El informe debe estar en español y contener esta tabla:
+Escribe en español. Identifica documento, companions y lentes ejecutadas; explica exclusiones por aplicabilidad o selección explícita. Un fallo de una lente requerida deja la revisión incompleta: registra lo obtenido y el fallo sin veredicto final.
+
+Después de obtener los resultados, comprueba su fundamento y clasifícalos: `bmad-review` no asigna severidades. Conserva la procedencia de cada lente y los solapamientos conforme al flujo. No inventes hallazgos para llenar la tabla:
 
 | ID | Severidad (blocker/major/minor) | Sección | Hallazgo | Corrección |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 
-`bmad-review` no asigna severidades: clasifica sus resultados al preparar este informe, después de la revisión. Usa IDs consecutivos (`R1`, `R2`, …) y estas severidades:
+Usa IDs consecutivos `R1`, `R2`, … dentro de cada informe:
 
 - **blocker:** impide implementar correctamente o presenta una contradicción esencial.
 - **major:** defecto relevante que requiere corrección.
 - **minor:** mejora puntual de claridad o precisión.
 
-La corrección es una recomendación escrita; no la apliques. No inventes hallazgos para llenar la tabla. Si no hay hallazgos, conserva únicamente el encabezado y el separador.
+La corrección es una recomendación. Sin hallazgos, conserva solo encabezado y separador de la tabla. Cierra una revisión completa con `Veredicto final: <veredicto>`:
 
-Cierra el informe con `Veredicto final: <veredicto>` según estas reglas:
+- **NO LISTO:** al menos un blocker.
+- **LISTO CON CAMBIOS:** major o minor, sin blockers. Los minor por sí solos no impiden implementar.
+- **LISTO:** ningún hallazgo.
 
-- **NO LISTO:** existe al menos un blocker.
-- **LISTO CON CAMBIOS:** hay major o minor, sin blockers.
-- **LISTO:** no hay hallazgos.
+## Verificar y entregar
+
+Verifica el informe: cobertura, tabla, IDs y veredicto acorde a severidades. Comprueba los archivos modificados: los subagentes comparten filesystem. Corrige faltantes directamente o con el mismo hijo; un fallo o informe incompleto no es una revisión terminada.
+
+Devuelve el enlace al informe, cobertura y veredicto, o los pendientes y el fallo sin emitir un veredicto de preparación.

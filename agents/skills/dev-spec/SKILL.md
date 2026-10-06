@@ -1,122 +1,57 @@
 ---
 name: dev-spec
-description: Clarificar un requerimiento mediante conversación y delegar a un subagente BMAD la creación de una spec, recomendando implementación completa o por stories. Usar cuando se solicite preparar una funcionalidad con este flujo; no implementa código.
+description: Preparar una spec BMAD desde un requerimiento, aclarar decisiones pendientes y recomendar implementación completa o por stories. Usar cuando se solicite preparar una funcionalidad con este flujo; no implementa código.
 ---
 
-# Preparar una spec de funcionalidad
+# Preparar una spec
 
-## Recopilar el requerimiento
+## Reunir el contexto
 
-Recibe un requerimiento en texto o un documento legible. Si falta, solicita al usuario que describa la funcionalidad y espera antes de delegar. Si se indica un documento inexistente o ambiguo, pide corregir la referencia.
+Recibe un requerimiento en texto o un documento legible e inequívoco. Si falta o la referencia no se resuelve, pide corregir la entrada antes de redactar.
 
-Inspecciona las instrucciones y el contexto del proyecto para descubrir stack, integraciones y convenciones. No preguntes por hechos verificables en el repositorio. Conversa hasta reunir:
+Inspecciona las instrucciones y los hechos del proyecto necesarios para reunir:
 
-- Nombre corto de la funcionalidad y slug descriptivo en minúsculas con guiones.
-- Problema que resuelve, objetivo de negocio y personas destinatarias.
-- Requerimientos concretos, reglas de negocio y casos límite relevantes.
-- Restricciones de stack, integraciones y requisitos no funcionales: rendimiento, seguridad, idiomas, etc.
-- Límites de alcance y resultados observables para comprobar el éxito.
+- Nombre y slug en minúsculas con guiones.
+- Problema, objetivo de negocio y destinatarios.
+- Requerimientos, reglas de negocio y casos límite.
+- Stack, integraciones, convenciones y requisitos no funcionales.
+- Alcance, exclusiones y resultados observables de éxito.
 
-Agrupa las preguntas pendientes en cada intercambio. Resuelve las ambigüedades que cambien el comportamiento antes de delegar; no inventes decisiones de producto. Marca las inferencias no confirmadas como `[SUPUESTO]` y distingue una restricción desconocida de una que no aplica. No impongas el stack de los ejemplos.
+Con información suficiente, pasa a redactar. Pregunta en bloques solo por decisiones pendientes; no preguntes hechos verificables en el repositorio ni inventes decisiones de producto. Resuelve ambigüedades de comportamiento antes del trabajo dependiente. Marca inferencias no confirmadas como `[SUPUESTO]`; distingue restricciones desconocidas de las que no aplican.
 
-## Seleccionar agentes y delegar
+## Ejecutar bmad-spec
 
-Selecciona solo los agentes necesarios y explica brevemente por qué:
+Localiza y lee `bmad-spec`. Selecciona solo las perspectivas necesarias: `bmad-agent-analyst` para requisitos, `bmad-agent-architect` para decisiones técnicas y `bmad-agent-ux-designer` para UI y sus estados. Explica la selección y lee esos skills; si falta una dependencia necesaria, informa el impedimento y detente. Varios roles dentro de un agente no son revisiones independientes.
 
-- `bmad-agent-analyst`: clarificación de requisitos, reglas de negocio y casos límite.
-- `bmad-agent-architect`: modelo de datos, contratos de API y decisiones técnicas con sus trade-offs.
-- `bmad-agent-ux-designer`: cuando haya UI, flujos y estados de vacío, error y carga.
+Ejecuta directamente o delega para separar autoría y comprobación en specs extensas; respeta la modalidad solicitada. Sin subagentes, continúa directamente. Al delegar, pasa directorio del proyecto, paths absolutos de skills y fuentes, hechos y decisiones. El hijo debe leer y seguir los skills; evita duplicar investigaciones resueltas.
 
-Localiza el `SKILL.md` disponible de `bmad-spec` y de cada agente seleccionado. Si falta una dependencia o la herramienta de subagentes, informa el impedimento y detente sin sustituir la delegación por redacción directa.
+Ejecuta `bmad-spec` con nombre, slug, objetivo, requerimientos, restricciones y límites. Exige:
 
-Inicia un subagente con el directorio absoluto del proyecto, las rutas absolutas de esos skills y el contexto recopilado. Indícale que lea y siga los skills; los nombres con `/` expresan la tarea y no sustituyen esa lectura. Ejecutará `bmad-spec` con los roles seleccionados como apoyo, sin implementar código ni iniciar otros flujos de entrega.
+- Carpeta nativa según la configuración; no fuerces paths ni cambies la configuración BMAD.
+- Kernel, IDs estables, `.memlog.md` canónica y companions conforme a BMAD. Los cambios se registran en memoria y se derivan mediante `bmad-spec`; no parches `SPEC.md` manualmente.
+- Aceptación observable en Given/When/Then; si requiere un companion, referéncialo desde `SPEC.md`.
+- `[SUPUESTO]` donde corresponda y "Fuera de alcance" explícito en Non-goals.
 
-Sustituye los campos de esta plantilla por la información reunida y conserva en «Agentes» únicamente las líneas seleccionadas:
+No implementes código ni crees stories. Si delegas, el hijo envía decisiones pendientes al principal y espera las respuestas del usuario antes del trabajo dependiente. Respeta la salida nativa de `bmad-spec`, incluido su JSON headless; el coordinador lee los artefactos y prepara la entrega del wrapper. Recomienda una corrida para un cambio cohesivo verificable conjuntamente, o stories para entregas independientes/dependencias por etapas; justifica y añade un plan breve en la respuesta, no en el kernel ni en `companions:`. El retorno delegado resume paths, supuestos, pendientes y recomendación, sin copiar los documentos.
 
-```text
-/bmad-spec
+## Comprobar la entrega
 
-Proyecto: <directorio-absoluto-del-proyecto>
-Skills: <rutas-absolutas-de-los-SKILL.md>
-Feature: <nombre corto de la funcionalidad>
-Slug: <slug-de-la-funcionalidad>
-Objetivo de negocio: <qué problema resuelve y para quién>
+Lee `SPEC.md`, `.memlog.md` y los companions referenciados. Comprueba que existen, sus referencias se resuelven y preservan los requerimientos, restricciones y decisiones; que mantienen el formato e IDs BMAD; y que incluyen aceptación, supuestos y exclusiones acordados. Respeta la propiedad de companions adoptados: se referencian, no se editan como documentos propios.
 
-Requerimientos:
-- <req 1>
-- <req 2>
+Contrasta artefactos y cambios reales con el contexto y alcance, no solo con el resumen del autor. Corrige faltantes mediante `bmad-spec` o con el mismo hijo y verifica de nuevo. Si falla, comunica lo generado y las decisiones pendientes que impiden implementar; crear una spec no demuestra readiness.
 
-Restricciones:
-- Stack: <stack descubierto o acordado>
-- Integraciones: <APIs, auth, etc.>
-- No funcionales: <rendimiento, seguridad, i18n, etc.>
+## Entregar y continuar
 
-Contexto y límites:
-- <convenciones, fuentes relevantes, exclusiones y resultados esperados>
-- <supuestos identificados, si existen>
-
-Agentes:
-- /bmad-agent-analyst: clarifica requerimientos y edge cases antes de redactar.
-- /bmad-agent-architect: modelo de datos, contratos de API, decisiones técnicas con trade-off.
-- /bmad-agent-ux-designer: flujos de UI y estados de vacío, error y carga.
-
-Reglas:
-- Si necesitas decisiones adicionales del usuario, envía todas tus preguntas
-  en un solo bloque al agente principal antes de escribir la spec y espera
-  sus respuestas. No decidas en nombre del usuario.
-- Marca cada supuesto como [SUPUESTO], además de registrarlo conforme a BMAD.
-- Incluye criterios de aceptación en Given/When/Then, observables y testeables.
-- Incluye una sección explícita "Fuera de alcance" en el campo Non-goals.
-- Conserva el kernel, IDs, memoria y documentos de apoyo del formato BMAD.
-  Si la aceptación detallada requiere un companion, referéncialo desde SPEC.md.
-- Recomienda una sola corrida o implementación por stories y justifica la
-  decisión. Una sola corrida corresponde a un cambio cohesivo verificable
-  conjuntamente; stories, a entregas independientes o dependencias por etapas.
-- No implementes código ni crees stories automáticamente.
-
-Output: carpeta nativa de bmad-spec según la configuración del proyecto,
-con SPEC.md, .memlog.md y los documentos de apoyo necesarios.
-Devuelve la ruta absoluta efectiva de SPEC.md, archivos generados,
-supuestos, pendientes y recomendación con un plan breve de implementación.
-```
-
-Respeta la configuración de salida de `bmad-spec`; no fuerces `docs/specs/<feature>.md` ni modifiques la configuración BMAD. Proporciona el slug para evitar que una invocación programática carezca de identificador.
-
-Traslada al usuario las preguntas del subagente y devuelve sus respuestas al mismo subagente. No continúes trabajo dependiente de respuestas aún pendientes.
-
-## Verificar la entrega
-
-Espera la finalización y lee `SPEC.md`, `.memlog.md` y los documentos de apoyo referenciados. Comprueba que:
-
-- Las rutas devueltas existen, son legibles y los companions se resuelven desde la spec.
-- El requerimiento y las restricciones recopiladas están preservados en el kernel o sus companions.
-- Hay aceptación en Given/When/Then, supuestos marcados si existen y "Fuera de alcance" explícito.
-- Se conserva el formato BMAD y hay una recomendación justificada con un plan breve.
-
-Si falta un requisito, solicita al mismo subagente que lo complete dentro del alcance acordado y verifica de nuevo. Si falla la delegación o no puede completar la entrega, informa lo generado y lo pendiente sin presentar la spec como terminada. Identifica expresamente las decisiones pendientes que impiden implementar; una spec creada no implica que esté lista para construir.
-
-## Entregar el plan y los prompts de continuación
-
-Responde en español con un enlace a la ruta real de `SPEC.md`, supuestos y pendientes relevantes, y un plan breve acorde a la modalidad recomendada. Entrega estos prompts sustituyendo `<PATH-DE-LA-SPEC>` por la ruta real, entre comillas si contiene espacios:
+Responde en español con el enlace real a `SPEC.md`, supuestos, pendientes y plan. Entrega prompts con paths verificados, entre comillas si contienen espacios:
 
 ```text
 /dev-review-spec <PATH-DE-LA-SPEC>
 /dev-apply-review <PATH-DE-LA-SPEC>
-/bmad-create-epics-and-stories <PATH-DE-LA-SPEC>
 ```
 
-Explica que `dev-apply-review` se usa después de generar el informe de review y que `bmad-create-epics-and-stories` corresponde al camino por stories. Son comandos para continuar, no tareas que debas ejecutar en este flujo.
+Son pasos para continuar, no ejecuciones de este flujo; `dev-apply-review` requiere el informe previo.
 
-Para implementación en una sola corrida, agrega:
+- Una corrida: `/dev-build <PATH-DE-LA-SPEC>`.
+- Por stories: `/bmad-create-epics-and-stories <PATH-DE-LA-SPEC>` y `/dev-build <PATH-DE-CADA-STORY>`, una vez por story en orden de dependencias. Si aún no existen, conserva el placeholder y explica que las rutas se obtienen al crearlas; no inventes nombres.
 
-```text
-/dev-build <PATH-DE-LA-SPEC>
-```
-
-Para implementación por stories, agrega:
-
-```text
-/dev-build <PATH-DE-CADA-STORY>
-```
-
-Indica que se ejecuta una vez por story, en el orden de dependencias del plan. Si aún no existen, conserva el placeholder explícito y aclara que las rutas se obtendrán al crearlas. Si existen y se han verificado, entrega un comando con la ruta real de cada story; no inventes nombres ni rutas.
+Aclara que build puede generar una spec operativa distinta tomando `SPEC.md` y sus companions como contrato fuente.

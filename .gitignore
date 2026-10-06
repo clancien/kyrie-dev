@@ -6,6 +6,7 @@ _bmad
 .claude
 .vscode/
 .idea/
+.analysis
 *.swp
 .DS_Store
 Thumbs.db

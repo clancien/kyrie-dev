@@ -1,45 +1,48 @@
 ---
 name: dev-apply-review
-description: Aplicar una review a una spec o story por ID o path mediante un subagente arquitecto BMAD, conservando su formato y registrando los hallazgos aplicados y rechazados. Usar cuando se solicite aplicar una revisión al documento.
+description: Aplicar un informe de review a una spec o story por ID o path, respetar su fuente canónica y registrar hallazgos aplicados, rechazados y pendientes. Usar cuando se solicite aplicar una revisión al documento.
 ---
 
-# Aplicar review a una spec o story
+# Aplicar una review
 
-## Resolver los documentos
+## Resolver documentos
 
-Recibe un ID o path obligatorio de una spec o story y, opcionalmente, un ID o path de una review. Si falta la spec/story, informa que es obligatoria y detén el proceso.
+Requiere un ID o path de una spec/story Markdown legible. Resuelve paths desde el directorio de trabajo e IDs por nombre e identificador declarado; excluye `.review.md` al buscar la spec/story. Si falta, no existe o hay varias coincidencias, informa el problema y detente sin aproximaciones.
 
-Resuelve los paths proporcionados desde el directorio de trabajo. Para un ID, busca en los documentos del proyecto por nombre e identificador declarado; al resolver la spec/story, excluye informes `.review.md`. Continúa únicamente con un documento Markdown legible e inequívoco. Si no existe, no es legible o hay varias coincidencias, informa el problema y detente sin elegir por aproximación.
+Resuelve el informe en este orden:
 
-Resuelve la review con esta prioridad:
+1. ID o path proporcionado por el usuario.
+2. Referencia explícita en la spec/story; paths relativos desde su carpeta e IDs mediante búsqueda del proyecto.
+3. Solo sin referencia interna, archivo vecino que reemplaza `.md` por `.review.md`.
 
-1. Si el usuario proporciona un ID o path de review, úsalo sin sustituirlo por otro informe.
-2. Si no lo proporciona, lee la spec/story y busca una referencia explícita a su review. Resuelve los paths relativos de esa referencia desde la carpeta de la spec/story y los IDs mediante la búsqueda del proyecto.
-3. Solo si no hay referencia interna, busca junto al documento un archivo cuyo nombre reemplace la extensión `.md` por `.review.md`.
+Una referencia explícita inexistente, ilegible o ambigua detiene el proceso; no la sustituyas por el nombre inferido. Si tampoco existe el informe inferido, detente. No generes otra review.
 
-Si la review indicada o referenciada no existe, no es legible o resulta ambigua, informa el problema y detente sin recurrir al nombre inferido. Si tampoco existe el archivo inferido cuando corresponde buscarlo, detente. No generes una review nueva.
+## Elegir el escritor y la coordinación
 
-## Delegar al arquitecto
+Comprueba que el informe corresponde al documento y determina su formato por contenido y contexto:
 
-Localiza el skill disponible `bmad-agent-architect` y la herramienta de subagentes. Si falta cualquiera, informa el fallo y detente; no sustituyas la delegación por una aplicación directa.
+- **Spec nativa de `bmad-spec`:** localiza y lee ese skill; ejecuta su actualización en la carpeta existente. Registra decisiones y cambios en `.memlog.md` mediante su script y deriva `SPEC.md` y companions propios. Conserva IDs y memoria; no parches el kernel ni edites companions adoptados. Si falta la memoria o no se puede determinar la propiedad, informa el impedimento antes de escribir.
+- **Story o spec operativa:** respeta su contrato, estructura y campos protegidos. Edita solo el documento resuelto; un cambio de intención congelada requiere la decisión del usuario. Si hay otro escritor canónico, úsalo en lugar de una edición manual.
 
-Inicia un subagente con los paths absolutos de la spec/story, la review y el `SKILL.md` del arquitecto. Indícale que lea y ejecute ese skill y que solo puede modificar la spec/story, manteniendo la review como fuente de lectura. Incluye esta tarea, sustituyendo `<REVIEW>` y `<SPEC>` por sus paths absolutos:
+Ejecuta directamente por defecto; delega para separar edición/comprobación o si se solicita. Consulta `bmad-agent-architect` cuando haya decisiones técnicas. Lee los skills necesarios; sin escritor requerido, detente; sin subagentes, continúa directamente.
 
-```text
-/bmad-agent-architect
+La review es de lectura. Para una spec nativa, las escrituras se limitan a su memoria, kernel y companions propios necesarios; no cambies fuentes, configuración, código ni `stories.yaml`. Si una actualización deja stories desalineadas, comunícalo como pendiente. Registra el changelog de esta operación en memoria como evento y entrégalo en la respuesta; no lo agregues al kernel ni a `companions:` como metadata de proceso. En stories/specs operativas, agrega al final "Changelog de review" sin alterar campos protegidos.
 
-Aplica <REVIEW> sobre <SPEC>
-- Pregúntame lo que requiere decisiones mías.
-- Blocker y major: aplicar todos. Si rechazas uno, justifica en una línea.
-- Minor: aplicar solo si no agregan alcance.
-- Mantén estructura y formato BMAD.
-- Agrega al final un "Changelog de review" con IDs aplicados/rechazados.
-```
+Respeta la salida nativa del escritor, incluido el JSON headless de `bmad-spec`; el wrapper prepara su resumen después de leer los artefactos. Al delegar, pasa directorio del proyecto, paths absolutos de documento, review y skills, contexto, formato y límites de escritura. El hijo lee los skills y retorna archivos, IDs y pendientes; retransmite sus preguntas al usuario y sus respuestas al hijo antes del trabajo dependiente.
 
-Pide que conserve los IDs del informe y registre también los minor rechazados por agregar alcance. El subagente debe comunicar al agente principal cualquier pregunta que requiera una decisión del usuario y esperar su respuesta antes de aplicar los cambios dependientes. Traslada esas preguntas al usuario y devuelve sus respuestas al subagente sin decidir en su nombre.
+## Aplicar los hallazgos
 
-## Comprobar y comunicar el resultado
+Conserva los IDs del informe:
 
-Espera la finalización del subagente y lee la spec/story actualizada. Comprueba que conserva la estructura y el formato BMAD y que contiene al final el "Changelog de review" con los IDs aplicados/rechazados y las justificaciones de una línea para los blocker o major rechazados. Si falta algún requisito, solicita al mismo subagente que lo complete dentro del alcance autorizado.
+- **Blocker y major:** aplica todos los fundamentados y dentro del alcance autorizado. Si uno requiere decisiones del usuario, pregunta y déjalo pendiente hasta obtener respuesta. Justifica cualquier rechazo en una línea.
+- **Minor:** aplica solo si no amplía el alcance; registra también los rechazados por agregar alcance.
 
-Devuelve el path del documento, los IDs aplicados/rechazados y cualquier pendiente. Si la delegación falla o quedan decisiones sin responder, informa lo completado y lo pendiente sin presentar la aplicación como terminada.
+Para cada ID registra disposición y motivo: aplicado, rechazado por falso positivo/no aplicabilidad, o pendiente por defecto válido sin resolver. Un defecto válido no se vuelve resuelto por rechazar su propuesta de corrección. No decidas cambios de producto por el usuario.
+
+## Comprobar y entregar
+
+Contrasta cada ID con el cambio efectivo, disposición y alcance. Verifica estructura, referencias, requisitos y changelog; en specs nativas, registro en memoria y derivación por `bmad-spec`. Comprueba archivos modificados: los subagentes comparten filesystem.
+
+Corrige faltantes con el escritor correspondiente o el mismo hijo y verifica otra vez. Devuelve en español enlaces, archivos e IDs aplicados/rechazados/pendientes con motivos; destaca blockers válidos y decisiones pendientes. Si falla, comunica lo completado sin declararlo terminado.
+
+La aplicación no actualiza el veredicto del informe anterior. Recomienda `/dev-review-spec <path-real>` para obtener un nuevo veredicto; no declares readiness solo por el changelog ni inicies esa revisión automáticamente.
