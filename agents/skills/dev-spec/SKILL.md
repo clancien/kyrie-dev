@@ -40,9 +40,23 @@ Lee `SPEC.md`, `.memlog.md` y los companions referenciados. Comprueba que existe
 
 Contrasta artefactos y cambios reales con el contexto y alcance, no solo con el resumen del autor. Corrige faltantes mediante `bmad-spec` o con el mismo hijo y verifica de nuevo. Si falla, comunica lo generado y las decisiones pendientes que impiden implementar; crear una spec no demuestra readiness.
 
+## Límites de escritura e índice de specs
+
+Las escrituras de producto se limitan a memoria, kernel y companions propios mediante `bmad-spec`. La excepción es el índice central siguiente; no escribas `status` en `SPEC.md`, `.memlog.md` ni companions, ni modifiques `stories.yaml`.
+
+Solo después de comprobar con éxito la spec creada/actualizada, resuelve `{implementation_artifacts}/sprint-status.yaml` desde `implementation_artifacts` en `_bmad/config.toml` del proyecto, expandiendo `{project-root}`. No fuerces paths ni cambies configuración; si no puedes resolverla, avisa en la entrega y continúa.
+
+Usa `specs:` como mapping y la clave `spec-<slug>` de la carpeta nativa. Crea o actualiza su entrada con `status: backlog` y `spec:` apuntando al kernel real (habitualmente `docs/specs/<slug>/SPEC.md`), relativo a la raíz del proyecto. Si la entrada ya está más avanzada que `backlog`, déjala igual. El orden es `backlog → ready-for-dev → in-progress → review → done`: a igual estado no reescribas una entrada ya correcta; no retrocedas salvo petición explícita del flujo.
+
+Solo este skill puede crear el archivo o la sección `specs:` ausentes. Para un archivo nuevo, copia el encabezado y la estructura básica del sprint-status/template BMAD de referencia, adaptando los datos al proyecto: `generated`, `last_updated`, `project`, `project_key`, `tracking_system`, `story_location`, `references`, `specs` y `development_status: {}`. No copies epics, stories ni entradas del proyecto de referencia. Si falta solo `specs:`, añade ese mapping sin reconstruir el archivo.
+
+En un archivo existente, edita únicamente la entrada en curso y `last_updated` (`MM-DD-YYYY HH:MM`, hora del proyecto) cuando haya cambios. Preserva comentarios, orden, `references:`, `development_status`, campos existentes y entradas ajenas; usa edición localizada o YAML que preserve formato, nunca una serialización que pierda comentarios. Valida el YAML antes y después y comprueba el diff. Si no se puede parsear o editar limpiamente, no fuerces el cambio: avisa y continúa.
+
+`operative:` y `stories:` son rutas relativas a la raíz, solo cuando existen; este flujo no genera esos archivos. Si existe spec operativa, su frontmatter `status` es la fuente de verdad (`in-review` se traduce a `review`); una discrepancia se corrige en el índice y se menciona en la entrega, sin reiniciar el estado operativo a `backlog`. La reconciliación con el frontmatter prevalece sobre el orden de avance; no deduzcas estado del kernel ni dupliques estados por story.
+
 ## Entregar y continuar
 
-Responde en español con el enlace real a `SPEC.md`, supuestos, pendientes y plan. Entrega prompts con paths verificados, entre comillas si contienen espacios:
+Responde en español con el enlace real a `SPEC.md`, supuestos, pendientes y plan. Lista el cambio del índice, su estado conservado o el motivo por el que no se escribió. Entrega prompts con paths verificados, entre comillas si contienen espacios:
 
 ```text
 /dev-review-spec <PATH-DE-LA-SPEC>

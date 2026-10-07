@@ -28,6 +28,22 @@ Antes de implementar, verifica que la spec operativa preserva requisitos, restri
 
 Respeta aprobaciones, detenciones y autorización vigente. Resuelve decisiones del usuario antes del trabajo dependiente; retransmite preguntas y respuestas si delegas. No cambies configuración BMAD ni inicies otros flujos de entrega.
 
+## Límites de escritura e índice de specs
+
+Conserva las escrituras de implementación de `bmad-build` y el contrato fuente de lectura. La excepción a esos límites es la entrada de la spec suelta en el índice central y su `last_updated`. No escribas `status` en `SPEC.md`, `.memlog.md` ni companions; no modifiques `stories.yaml` ni dupliques estados por story.
+
+Si la entrada es una story de un epic, no toques `specs:`. Para una spec suelta, identifica su kernel nativo y slug desde la fuente/trazabilidad real; no uses el nombre de la spec operativa como slug ni inventes una correspondencia.
+
+Resuelve `{implementation_artifacts}/sprint-status.yaml` desde `implementation_artifacts` en `_bmad/config.toml` del proyecto, expandiendo `{project-root}`; no fuerces paths. Requiere archivo, mapping `specs:` y entrada `spec-<slug>` existentes. Si no puedes resolver la ruta, identificar la spec suelta o encontrar archivo/sección/entrada, avisa en la entrega y continúa; no los crees, esa creación corresponde a `dev-spec`.
+
+Coordina la sincronización durante `bmad-build`, también si delegas: registra `operative:` en cuanto exista la spec operativa y `stories:` solo si existe `stories.yaml` de la spec nativa, ambos relativos a la raíz del proyecto. Conserva `spec:` apuntando al kernel real, también relativo a la raíz. No generes archivos para llenar campos ni incluyas rutas de archivos inexistentes.
+
+Lee el frontmatter `status` de la spec operativa en cada transición: al empezar la implementación sincroniza `in-progress`; al pasar a revisión, `in-review → review`; al cerrar, `done`. Los estados `backlog` y `ready-for-dev` conservan su nombre. Sin frontmatter legible con estado reconocido, no inventes un estado: informa la limitación. El frontmatter es la fuente de verdad; si discrepa del YAML, corrige el índice y menciónalo en la entrega. No adelantes estado por el resumen de un delegado ni por la intención de iniciar/cerrar.
+
+Orden: `backlog → ready-for-dev → in-progress → review → done`. No retrocedas salvo petición explícita del flujo; la reconciliación de una discrepancia con el frontmatter prevalece sobre ese orden. Si ya está igual o más avanzado que un destino propuesto y coincide con el frontmatter, no cambies el estado; registra solo rutas nuevas/corregidas cuando corresponda.
+
+Edita únicamente la entrada en curso y `last_updated` (`MM-DD-YYYY HH:MM`, hora del proyecto) cuando haya cambios. Preserva comentarios, orden, `references:`, `development_status`, demás campos y entradas ajenas. Valida YAML antes y después, usa edición localizada o YAML que preserve formato y comprueba el diff; si no se puede parsear o editar limpiamente, no fuerces el cambio, avisa y continúa. Relee el estado operativo al entregar y sincroniza si corresponde, incluso en una ejecución bloqueada; un bloqueo no implica `done` ni autoriza retroceder.
+
 ## Verificar y entregar
 
 Conserva los controles de la ruta ejecutada: diff, aceptación, pruebas y revisión correspondientes. No sustituyas evidencia por el resumen del implementador ni repitas pruebas satisfactorias sin motivo. Si delegas, contrasta artefactos y cambios reales con el retorno y solicita faltantes al mismo hijo.
@@ -38,5 +54,6 @@ Devuelve en español un resultado compacto por unidad implementada:
 - Paths efectivos del contrato fuente y de la spec operativa creada o resumida; archivos modificados relevantes.
 - Qué cambió; comandos ejecutados, directorio y resultados. Distingue comandos propuestos y verificaciones manuales de comprobaciones realizadas.
 - Resultado de revisión, capas ejecutadas, pendientes/riesgos y trabajo diferido; commit si el flujo lo creó.
+- Cambio del índice, rutas registradas, discrepancias reconciliadas o motivo por el que no se escribió.
 
 `done` requiere completar la ruta correspondiente y sus controles. Una entrega fallida, incompleta, pendiente de aprobación o sin revisión requerida no es `done`. No marques la fuente como completada solo porque la spec operativa lo esté.

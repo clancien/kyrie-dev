@@ -22,7 +22,7 @@ Lee [references/apply-protocol.md](references/apply-protocol.md). Usa `scripts/a
 
 Un solo escritor modifica producto; el principal coordina y registra estado. Delega editor y verificador con contextos separados si hay capacidad; sin subagentes verifica secuencialmente y declara la limitación. Consulta al arquitecto solo si hay decisiones técnicas relevantes, sin iniciar otros flujos.
 
-La review de entrada queda de lectura. En specs nativas, las escrituras de producto se limitan a memoria, kernel y companions propios necesarios; no cambies fuentes, código, configuración ni `stories.yaml`. Comunica stories desalineadas como pendientes para su consumidor. Changelog en memoria/respuesta, fuera del kernel y `companions:`; en documentos operativos, sección final "Changelog de review". El historial de verificación queda fuera del contrato.
+La review de entrada queda de lectura. En specs nativas, las escrituras de producto se limitan a memoria, kernel y companions propios necesarios; la única excepción es la entrada del índice central y su `last_updated`, bajo las condiciones siguientes. No cambies fuentes, código, configuración ni `stories.yaml`; no escribas `status` en `SPEC.md`, `.memlog.md` ni companions. Comunica stories desalineadas como pendientes para su consumidor. Changelog en memoria/respuesta, fuera del kernel y `companions:`; en documentos operativos, sección final "Changelog de review". El historial de verificación queda fuera del contrato.
 
 Respeta la salida nativa del escritor, incluido JSON headless; el coordinador lee artefactos antes de resumir. Al delegar, pasa directorio, paths absolutos, decisiones, alcance y límites de escritura. Los hijos no invocan este loop ni revisiones completas. Retransmite preguntas y respuestas del usuario antes del trabajo dependiente.
 
@@ -58,6 +58,16 @@ Registra `coverage: global` sobre el inventario completo actual. Sin major/block
 
 Estados: `active`, `ready`, `needs_user`, `incomplete_review`, `stalled`, `budget_exhausted`. Detén por límite, oscilación o dos tandas sin mejora verificable de defectos relevantes. Registra causas y evidencia, no solo conteos. Reanuda solo una corrida identificada, conservando D, historial y presupuesto. Cambios externos invalidan cierre y exigen reexaminar el impacto más un nuevo cierre simplificado, nunca una baseline completa automática; usa `refresh` con motivo. No migres/resetées silenciosamente corridas de política antigua.
 
-Ejecuta `verify` antes de comunicar ready y comprueba archivos realmente escritos. Entrega en español estado/razón, documento, informe de entrada, verificación final y corrida, tandas usadas/límite, D/R y sus disposiciones, decisiones y próximo paso. Identifica el cierre como **simplificado**, no como una certificación completa de `dev-review-spec`; no declares ahorros medidos sin evidencia.
+Ejecuta `verify` antes de comunicar ready y comprueba archivos realmente escritos. Solo tras esa comprobación aplica la actualización del índice siguiente. Entrega en español estado/razón, documento, informe de entrada, verificación final y corrida, tandas usadas/límite, D/R y sus disposiciones, decisiones y próximo paso; incluye el cambio del índice o por qué no se escribió. Identifica el cierre como **simplificado**, no como una certificación completa de `dev-review-spec`; no declares ahorros medidos sin evidencia.
 
 No cambies el veredicto ni las copias vecinas de la review manual. Guarda verificaciones en el historial propio de apply. `ready` permite proponer `/dev-build <path-real>` sin iniciarlo automáticamente. Una parada entrega checkpoint reanudable.
+
+## Índice de specs nativas
+
+Escribe únicamente cuando la spec es nativa y el loop termina en `ready` (`LISTO` o `LISTO CON OBSERVACIONES`). En `needs_user`, `incomplete_review`, `stalled`, `budget_exhausted` o cualquier otro estado no escribas nada en el índice, ni reconcilies estados o actualices fechas.
+
+Resuelve `{implementation_artifacts}/sprint-status.yaml` desde `implementation_artifacts` en `_bmad/config.toml` del proyecto, expandiendo `{project-root}`; no fuerces paths. Busca el mapping `specs:` y la entrada `spec-<slug>` de la carpeta nativa. Si no puedes resolver la ruta o faltan archivo, sección o entrada, avisa en la entrega y continúa; no los crees, esa creación corresponde a `dev-spec`.
+
+Cambia `backlog` a `ready-for-dev`. Orden: `backlog → ready-for-dev → in-progress → review → done`. Si ya está igual o más avanzada, no la rebajes ni reescribas; solo un pedido explícito del flujo permite retroceder. Si existe spec operativa, su frontmatter `status` prevalece: corrige discrepancias en el índice, traduce `in-review` a `review` y menciónalo en la entrega. Esa reconciliación prevalece sobre el orden de avance y solo se permite dentro de la puerta `ready` de una spec nativa.
+
+Modifica únicamente el estado de esa entrada y `last_updated` (`MM-DD-YYYY HH:MM`, hora del proyecto) cuando cambie el índice. Conserva `spec:`, `operative:` y `stories:` (rutas relativas a la raíz), demás campos, comentarios, orden, `references:`, `development_status` y entradas ajenas. No dupliques estados por story ni toques `stories.yaml`. Valida YAML antes y después, usa edición localizada o YAML que preserve formato y comprueba el diff; si no se puede parsear o editar limpiamente, no fuerces la escritura, avisa y continúa.
