@@ -6,12 +6,11 @@ const DATA_FILES = {
   movimientosApi: "./data/movimientos_api_server_latest.json",
 };
 
-const metricsEl = document.getElementById("metrics");
 const accountsEl = document.getElementById("accounts");
 const movementsByAccountEl = document.getElementById("movementsByAccount");
 const cardsEl = document.getElementById("cards");
-const rawJsonEl = document.getElementById("rawJson");
-const reloadBtn = document.getElementById("reloadBtn");
+const updateBtn = document.getElementById("updateBtn");
+const updateStatusEl = document.getElementById("updateStatus");
 const movementsSearchEl = document.getElementById("movementsSearch");
 const movementsMonthEl = document.getElementById("movementsMonth");
 const movementsTypeEl = document.getElementById("movementsType");
@@ -65,29 +64,6 @@ const toNumberSafe = (v) => {
   const n = Number(normalized);
   return Number.isFinite(n) ? n : 0;
 };
-
-function renderMetrics(data) {
-  const cardsCount = Array.isArray(data?.api_raw?.tarjetas)
-    ? data.api_raw.tarjetas.length
-    : Array.isArray(data?.api_raw?.selector_productos?.productos)
-      ? data.api_raw.selector_productos.productos.filter((p) => p?.tipo === "tarjeta").length
-      : 0;
-
-  const items = [
-    ["Cuentas detectadas", data.accounts_count ?? 0],
-    ["Cuentas consultadas", data.accounts_queried_count ?? 0],
-    ["Movimientos totales", data?.derived?.movimientos_total ?? 0],
-    ["Tarjetas", cardsCount],
-  ];
-
-  clear(metricsEl);
-  items.forEach(([label, value]) => {
-    const card = el("article", "metric");
-    card.append(el("div", "label", label));
-    card.append(el("div", "value", String(value)));
-    metricsEl.append(card);
-  });
-}
 
 function table(headers, rows, opts = {}) {
   if (!rows?.length) return el("div", "empty", "Sin datos para mostrar.");
@@ -216,7 +192,8 @@ function renderMovementsFromCurrent() {
 
   let cargoTotal = 0;
   let abonoTotal = 0;
-  const rows = filtered.slice(0, 100).map((m) => {
+  block.append(el("p", "subtitle", `${filtered.length} movimientos de ${currentMovementsContext.movimientos.length} acumulados`));
+  const rows = filtered.map((m) => {
     const tipo = String(m?.tipo || "").toLowerCase();
     const montoRaw = m.monto !== undefined ? m.monto : m.importe;
     const montoFmt = montoRaw !== undefined ? toMoney(montoRaw) : "-";
@@ -257,11 +234,9 @@ function showAccountMovements(data, account) {
   const groups = data?.derived?.movimientos_by_account ?? [];
   const group = groups.find((g) => {
     const acc = g?.account || {};
-    if (acc.numero && account.numero && String(acc.numero) === String(account.numero)) return true;
-    if (acc.mascara && account.mascara && String(acc.mascara) === String(account.mascara)) return true;
-    return false;
+    return accountIdentity(acc) === accountIdentity(account);
   });
-  const title = `Últimos movimientos · ${account.labelProducto || account.codigoProducto || "Cuenta"} ${account.numero || account.mascara || ""}`.trim();
+  const title = `Historial de movimientos · ${account.labelProducto || account.codigoProducto || "Cuenta"} ${account.numero || account.mascara || ""}`.trim();
   renderMovementsRows(title, group?.movimientos || []);
 }
 
@@ -269,6 +244,17 @@ function showCardMovements(data, card) {
   const cardMovs = card?.movimientos || card?.ultimosMovimientos || [];
   const title = `Últimos movimientos · Tarjeta ${card.numero || card.mascara || ""}`.trim();
   renderMovementsRows(title, Array.isArray(cardMovs) ? cardMovs : []);
+}
+
+function productButton(key, label, number, details, onSelect) {
+  const button = el("button", "product-button");
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(selectedKey === key));
+  button.append(el("span", "product-label", label));
+  button.append(el("span", "product-number", number));
+  if (details) button.append(el("span", "product-details", details));
+  button.addEventListener("click", onSelect);
+  return button;
 }
 
 function renderAccounts(data) {
@@ -280,32 +266,19 @@ function renderAccounts(data) {
       .map((s) => [`${String(s.codProducto || "")}:${String(s.numero || "")}`, s])
   );
 
-  const rows = accounts.map((a, idx) => [
-    a.numero,
-    a.labelProducto || "-",
-    a.codigoProducto,
-    a.claseCuenta || "-",
-    a.moneda,
-    (() => {
-      const saldo = saldoByKey.get(`${String(a.codigoProducto || "")}:${String(a.numero || "")}`);
-      return saldo?.cupo !== undefined ? toMoney(saldo.cupo) : "-";
-    })(),
-    (() => {
-      const saldo = saldoByKey.get(`${String(a.codigoProducto || "")}:${String(a.numero || "")}`);
-      return saldo?.disponible !== undefined ? toMoney(saldo.disponible) : "-";
-    })(),
-  ]);
   clear(accountsEl);
-  accountsEl.append(table(["Número", "Tipo", "Código", "Clase", "Moneda", "Saldo", "Disponible"], rows, {
-    numericColumns: [5, 6],
-    isRowSelected: (_, idx) => selectedKey === `account:${idx}`,
-    onRowClick: (_, idx) => {
+  if (!accounts.length) accountsEl.append(el("div", "empty", "Sin cuentas disponibles."));
+  accounts.forEach((account, idx) => {
+    const saldo = saldoByKey.get(`${String(account.codigoProducto || "")}:${String(account.numero || "")}`);
+    const label = account.labelProducto || (account.codigoProducto === "CTD" ? "Cuenta corriente" : account.codigoProducto || "Cuenta");
+    const details = [account.moneda, saldo?.disponible !== undefined ? `Disponible ${toMoney(saldo.disponible)}` : ""].filter(Boolean).join(" · ");
+    accountsEl.append(productButton(`account:${idx}`, label, account.numero || account.mascara || "", details, () => {
       selectedKey = `account:${idx}`;
       renderAccounts(data);
       renderCards(data);
-      showAccountMovements(data, accounts[idx]);
-    },
-  }));
+      showAccountMovements(data, account);
+    }));
+  });
 }
 
 function renderCards(data) {
@@ -336,32 +309,29 @@ function renderCards(data) {
   const formatMoneyMaybe = (v) => (v === undefined || v === null || v === "" ? "-" : toMoney(v));
 
   const cardsData = (apiCards.length ? apiCards : selectorCards);
-  const rows = cardsData.map((card) => {
+  clear(cardsEl);
+  if (!cardsData.length) cardsEl.append(el("div", "empty", "Sin tarjetas disponibles."));
+  cardsData.forEach((card, idx) => {
     const sel = selectorById.get(card?.idProducto) || {};
     const saldo = pickFromCard(card, ["saldo", "saldoActual", "saldoFinal", "saldoTotal", "montoUtilizado"]);
     const disponible = pickFromCard(card, ["disponible", "montoDisponible", "saldoDisponible", "cupoDisponible"]);
-    return [
-      sel.codigo || card.codigo || "-",
-      sel.mascara || card.numero || "-",
-      sel.label || `${card.marca || ""} ${card.tipo || ""}`.trim() || "-",
-      sel.detalleEstado || sel.estado || (card.titular === true ? "Titular" : card.titular === false ? "Adicional" : "-"),
-      sel.tipoCliente || "-",
-      formatMoneyMaybe(saldo),
-      formatMoneyMaybe(disponible),
-    ];
-  });
-
-  clear(cardsEl);
-  cardsEl.append(table(["Código", "Máscara", "Tarjeta", "Estado", "Cliente", "Saldo", "Disponible"], rows, {
-    numericColumns: [5, 6],
-    isRowSelected: (_, idx) => selectedKey === `card:${idx}`,
-    onRowClick: (_, idx) => {
+    const label = sel.label || card.label || `${card.marca || ""} ${card.tipo || ""}`.trim() || "Tarjeta";
+    const details = `Saldo ${formatMoneyMaybe(saldo)} · Disponible ${formatMoneyMaybe(disponible)}`;
+    cardsEl.append(productButton(`card:${idx}`, label, sel.mascara || card.mascara || card.numero || "", details, () => {
       selectedKey = `card:${idx}`;
       renderAccounts(data);
       renderCards(data);
-      showCardMovements(data, cardsData[idx]);
-    },
-  }));
+      showCardMovements(data, card);
+    }));
+  });
+}
+
+function accountIdentity(account) {
+  return JSON.stringify([
+    String(account.numero || account.mascara || ""),
+    String(account.codigoProducto || ""),
+    String(account.moneda || "CLP"),
+  ]);
 }
 
 async function loadData() {
@@ -408,12 +378,13 @@ async function loadData() {
       labelProducto: p.label || "",
     }));
 
-  // Duplicados de productos pueden venir con el mismo numero; conservar solo la primera ocurrencia.
-  const seenAccountNumbers = new Set();
-  const accounts = accountsRaw.filter((a) => {
-    const n = String(a?.numero || "").trim();
-    if (!n || seenAccountNumbers.has(n)) return false;
-    seenAccountNumbers.add(n);
+  // Incluye cuentas históricas que ya no aparecen en el selector actual.
+  const historicalAccounts = (movimientosResp?.movimientos_by_account || []).map((group) => group.account).filter(Boolean);
+  const seenAccounts = new Set();
+  const accounts = [...accountsRaw, ...historicalAccounts].filter((a) => {
+    const key = accountIdentity(a);
+    if (!a.numero || seenAccounts.has(key)) return false;
+    seenAccounts.add(key);
     return true;
   });
 
@@ -441,20 +412,76 @@ async function loadData() {
 async function render() {
   try {
     const data = await loadData();
-    selectedKey = null;
-    renderMetrics(data);
+    const defaultAccountIndex = data.accounts_queried.findIndex((account) =>
+      account.codigoProducto === "CTD" || /corriente/i.test(`${account.tipoProducto} ${account.labelProducto}`)
+    );
+    selectedKey = defaultAccountIndex >= 0 ? `account:${defaultAccountIndex}` : null;
     renderAccounts(data);
     renderCards(data);
-    renderMovementsPlaceholder();
-    rawJsonEl.textContent = JSON.stringify(data, null, 2);
+    if (defaultAccountIndex >= 0) {
+      showAccountMovements(data, data.accounts_queried[defaultAccountIndex]);
+    } else {
+      renderMovementsPlaceholder();
+    }
   } catch (err) {
-    clear(metricsEl, accountsEl, movementsByAccountEl, cardsEl);
-    metricsEl.append(el("div", "empty", `Error cargando datos: ${err.message}. Ejecuta run.sh para regenerar JSON en output/.`));
-    rawJsonEl.textContent = "";
+    currentMovementsContext = null;
+    clear(accountsEl, movementsByAccountEl, cardsEl);
+    movementsByAccountEl.append(el("div", "empty", `Error cargando datos: ${err.message}. Ejecuta run.sh para regenerar JSON en output/.`));
   }
 }
 
-reloadBtn.addEventListener("click", render);
+function showUpdateStatus(message, failed = false) {
+  updateStatusEl.hidden = false;
+  updateStatusEl.textContent = message;
+  updateStatusEl.classList.toggle("update-error", failed);
+}
+
+async function updateRequest(options = {}) {
+  const response = await fetch("./api/update", { cache: "no-store", ...options });
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("La actualización requiere el servidor Python del panel. Reinicia el servicio con Docker Compose.");
+  }
+  const state = await response.json();
+  if (!response.ok) throw new Error(state.message || "No se pudo iniciar la actualización.");
+  return state;
+}
+
+async function followUpdate() {
+  updateBtn.disabled = true;
+  updateBtn.textContent = "Actualizando…";
+  try {
+    while (true) {
+      const state = await updateRequest();
+      showUpdateStatus(state.message, state.status === "error");
+      if (state.status !== "running") {
+        if (state.status === "done") await render();
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  } catch (error) {
+    showUpdateStatus(error.message, true);
+  } finally {
+    updateBtn.disabled = false;
+    updateBtn.textContent = "Actualizar";
+  }
+}
+
+updateBtn.addEventListener("click", async () => {
+  updateBtn.disabled = true;
+  showUpdateStatus("Preparando actualización…");
+  try {
+    const state = await updateRequest();
+    if (state.status !== "running") {
+      await updateRequest({ method: "POST", headers: { "X-Update-Token": state.token } });
+    }
+    await followUpdate();
+  } catch (error) {
+    showUpdateStatus(error.message, true);
+    updateBtn.disabled = false;
+  }
+});
 if (movementsSearchEl) {
   movementsSearchEl.addEventListener("input", () => {
     if (!currentMovementsContext) return;
@@ -474,3 +501,7 @@ if (movementsTypeEl) {
   });
 }
 render();
+updateRequest().then((state) => {
+  if (state.status === "running") followUpdate();
+  else if (state.status === "done" || state.status === "error") showUpdateStatus(state.message, state.status === "error");
+}).catch(() => {});

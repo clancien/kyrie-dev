@@ -8,7 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from bancochile_server_core import DEFAULT_CACHE_DIR, DEFAULT_OUTPUT_DIR, run_all_api
+from bancochile_server_core import DEFAULT_CACHE_DIR, DEFAULT_OUTPUT_DIR, DEFAULT_DATABASE, run_all_api
 
 
 def parse_args() -> argparse.Namespace:
@@ -16,13 +16,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-dir", default=str(DEFAULT_CACHE_DIR))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--account-number", default="")
-    parser.add_argument("--from-index", type=int, default=1)
     parser.add_argument("--step", type=int, default=100)
-    parser.add_argument("--max-pages", type=int, default=2)
-    month_group = parser.add_mutually_exclusive_group()
-    month_group.add_argument("--month", default="", help="Consultar un mes (YYYY-MM).")
-    month_group.add_argument("--from-month", default="", help="Primer mes del rango inclusivo (YYYY-MM).")
-    parser.add_argument("--to-month", default="", help="Último mes del rango inclusivo (YYYY-MM).")
+    parser.add_argument("--desde", default="", help="Primer mes inclusivo YYYY-MM; por defecto, dos meses antes de --hasta.")
+    parser.add_argument("--hasta", default="", help="Último mes inclusivo YYYY-MM; por defecto, el mes actual en Chile.")
+    parser.add_argument("--database", default=str(DEFAULT_DATABASE), help="Base SQLite acumulativa de cartola.")
+    parser.add_argument("--actualizar-desde", default="", help="Volver a consultar meses almacenados desde YYYY-MM, inclusive.")
     parser.add_argument("--incluir-tarjetas-selector", action="store_true")
     parser.add_argument("--print-json", action="store_true")
     return parser.parse_args()
@@ -30,15 +28,6 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if args.month:
-        if args.to_month:
-            print("[ERROR] --month no se puede combinar con --to-month.", file=sys.stderr)
-            return 2
-        args.from_month = args.month
-        args.to_month = args.month
-    elif bool(args.from_month) != bool(args.to_month):
-        print("[ERROR] Usa --from-month y --to-month juntos, o --month.", file=sys.stderr)
-        return 2
     cache_dir = Path(args.cache_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
 
@@ -47,18 +36,19 @@ def main() -> int:
             cache_dir=cache_dir,
             output_dir=output_dir,
             account_number=args.account_number,
-            from_index=args.from_index,
             step=args.step,
-            max_pages=args.max_pages,
             incluir_tarjetas_selector=args.incluir_tarjetas_selector,
-            from_month=args.from_month,
-            to_month=args.to_month,
+            from_month=args.desde,
+            to_month=args.hasta,
+            database_path=Path(args.database).resolve(),
+            refresh_from=args.actualizar_desde,
         )
         print(f"[OK] Archivo guardado: {output_dir / 'movimientos_server_latest.json'}", file=sys.stderr)
         print(f"[OK] Archivo guardado: {output_dir / 'selector_productos_server_latest.json'}", file=sys.stderr)
         print(f"[OK] Archivo guardado: {output_dir / 'saldos_server_latest.json'}", file=sys.stderr)
         print(f"[OK] Archivo guardado: {output_dir / 'tarjetas_server_latest.json'}", file=sys.stderr)
         print(f"[OK] Archivo guardado: {output_dir / 'movimientos_api_server_latest.json'}", file=sys.stderr)
+        print(f"[OK] Base acumulativa: {args.database}", file=sys.stderr)
         if args.print_json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0

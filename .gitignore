@@ -24,6 +24,7 @@ scripts/sync/drive.cod.txt
 scripts/bancochile/.session/
 scripts/bancochile/cache/
 scripts/bancochile/output/
+scripts/bancochile/data/
 scripts/bancochile/.venv/
 scripts/bancochile.zip
 

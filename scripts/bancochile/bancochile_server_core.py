@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ import requests
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_CACHE_DIR = BASE_DIR / "cache"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
+DEFAULT_DATABASE = BASE_DIR / "data" / "cartola.sqlite3"
 DEFAULT_TIMEOUT = 30
 
 BASE_URL = "https://portalpersonas.bancochile.cl"
@@ -285,7 +287,7 @@ def extract_movements(raw: dict[str, Any] | list[Any]) -> list[dict[str, Any]]:
         )
         ranked.append((score, len(candidate), candidate))
     ranked.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    return ranked[0][2]
+    return ranked[0][2] if ranked[0][0] else []
 
 
 def parse_month(value: str) -> tuple[int, int]:
@@ -321,7 +323,7 @@ def month_ranges(from_month: str, to_month: str) -> list[dict[str, str]]:
     start_year, start_month = parse_month(from_month)
     end_year, end_month = parse_month(to_month)
     if (start_year, start_month) > (end_year, end_month):
-        raise ServerApiError("--from-month no puede ser posterior a --to-month.")
+        raise ServerApiError("--desde no puede ser posterior a --hasta.")
 
     ranges = []
     year, month = start_year, start_month
@@ -337,22 +339,129 @@ def has_next_page(raw: dict[str, Any] | list[Any], movements: list[dict[str, Any
         page_info = raw.get("pagina")
         if isinstance(page_info, list) and page_info and isinstance(page_info[0], dict):
             more = str(page_info[0].get("masPaginas", "")).strip().upper()
+            if more in {"S", "SI", "Y", "YES", "TRUE", "1"}:
+                return True
+            if more in {"N", "NO", "FALSE", "0"}:
+                return False
             if more:
-                return more in {"S", "SI", "Y", "YES", "TRUE", "1"}
+                raise ServerApiError("La API devolvió un valor de masPaginas desconocido.")
     return bool(movements)
+
+
+def resolve_months(desde: str = "", hasta: str = "") -> list[dict[str, str]]:
+    """Por defecto incluye el mes actual y los dos anteriores, en Chile."""
+    hasta = hasta or datetime.now(ZoneInfo("America/Santiago")).strftime("%Y-%m")
+    year, month = parse_month(hasta)
+    if not desde:
+        ordinal = year * 12 + month - 1 - 2
+        first_year, first_month = divmod(ordinal, 12)
+        desde = f"{first_year:04d}-{first_month + 1:02d}"
+    return month_ranges(desde, hasta)
+
+
+def account_key(account: dict[str, Any]) -> str:
+    return json.dumps([account.get(k, "") for k in ("rutCliente", "numero", "codigoProducto", "moneda")])
+
+
+def collect_month(session: requests.Session, account: dict[str, Any], period: dict[str, str], step: int) -> list[dict[str, Any]]:
+    """Descarga un mes completo; nunca almacena como completo un mes truncado."""
+    pages = []
+    seen = set()
+    pag = 1
+    while True:
+        body = {"cuentaSeleccionada": account, "cabecera": {
+            "statusGenerico": True, "paginacionDesde": pag,
+            "fechaInicio": period["fechaInicio"], "fechaFin": period["fechaFin"],
+        }}
+        raw = call_post(session, MOV_ENDPOINT, body)
+        movements = extract_movements(raw)
+        fingerprint = json.dumps(movements, sort_keys=True, ensure_ascii=False)
+        if movements and fingerprint in seen:
+            raise ServerApiError(f"La API repitió una página en {period['month']}; el mes no se guardó.")
+        seen.add(fingerprint)
+        pages.append({"request": body, "response": raw, "month": period["month"]})
+        if not has_next_page(raw, movements):
+            return pages
+        if not movements:
+            raise ServerApiError(f"Página vacía con masPaginas activo en {period['month']}; el mes no se guardó.")
+        pag += step
+
+
+def accumulated_cartola(session: requests.Session, accounts: list[dict[str, Any]], periods: list[dict[str, str]], database_path: Path, step: int, refresh_from: str = "") -> tuple[list, list, list]:
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(database_path)
+    try:
+        connection.execute("""CREATE TABLE IF NOT EXISTS cartola_months (
+            account_key TEXT NOT NULL, month TEXT NOT NULL, account_json TEXT NOT NULL,
+            pages_json TEXT NOT NULL, updated_at TEXT NOT NULL,
+            PRIMARY KEY (account_key, month))""")
+        current_month = datetime.now(ZoneInfo("America/Santiago")).strftime("%Y-%m")
+        for account in accounts:
+            key = account_key(account)
+            for period in periods:
+                month = period["month"]
+                exists = connection.execute("SELECT 1 FROM cartola_months WHERE account_key=? AND month=?", (key, month)).fetchone()
+                if exists and month < current_month and not (refresh_from and month >= refresh_from):
+                    continue
+                pages = collect_month(session, account, period, step)
+                # Commit independiente por cuenta/mes: otros meses sobreviven a fallos.
+                with connection:
+                    connection.execute("INSERT OR REPLACE INTO cartola_months VALUES (?, ?, ?, ?, ?)", (
+                        key, month, json.dumps(account), json.dumps(pages), datetime.now(ZoneInfo("UTC")).isoformat()))
+
+        grouped = {}
+        raw_pages = []
+        for key, month, account_json, pages_json in connection.execute("SELECT account_key, month, account_json, pages_json FROM cartola_months ORDER BY month DESC, account_key"):
+            group = grouped.setdefault(key, {"account": json.loads(account_json), "movimientos": [], "movimientos_pages": []})
+            for page in json.loads(pages_json):
+                raw = page["response"]
+                movements = extract_movements(raw)
+                # El banco puede incluir un movimiento del mes siguiente en el borde.
+                filtered = []
+                for movement in movements:
+                    date = str(movement.get("fecha") or movement.get("fechaMovimiento") or movement.get("fechaContable") or "")
+                    date_month = date[:7] if re.match(r"\d{4}-\d{2}", date) else f"{date[:4]}-{date[4:6]}" if re.match(r"\d{8}", date) else ""
+                    if not date_month or date_month == month:
+                        filtered.append(movement)
+                group["movimientos"].extend(filtered)
+                group["movimientos_pages"].append({"month": month, "paginacionDesde": page["request"]["cabecera"]["paginacionDesde"], "raw": raw, "movements_count": len(filtered)})
+                raw_pages.append(page)
+        all_movements = []
+        for group in grouped.values():
+            seen_ids = set()
+            unique = []
+            for movement in group["movimientos"]:
+                identity = movement.get("id")
+                if identity is not None:
+                    identity = str(identity)
+                    if identity in seen_ids:
+                        continue
+                    seen_ids.add(identity)
+                unique.append(movement)
+            group["movimientos"] = unique
+            group["movimientos_total"] = len(unique)
+            all_movements.extend(unique)
+        return all_movements, raw_pages, list(grouped.values())
+    finally:
+        connection.close()
 
 
 def run_all_api(
     cache_dir: Path,
     output_dir: Path,
     account_number: str = "",
-    from_index: int = 1,
     step: int = 100,
-    max_pages: int = 2,
     incluir_tarjetas_selector: bool = False,
     from_month: str = "",
     to_month: str = "",
+    database_path: Path = DEFAULT_DATABASE,
+    refresh_from: str = "",
 ) -> dict[str, Any]:
+    date_ranges = resolve_months(from_month, to_month)
+    if refresh_from:
+        parse_month(refresh_from)
+    if step < 1:
+        raise ServerApiError("--step debe ser mayor que cero.")
     # Cache se usa solo para sesión (storage state), no para resultados API.
     cleanup_cache_api_files(cache_dir)
 
@@ -378,49 +487,8 @@ def run_all_api(
     else:
         accounts_to_query = [enrich_account_from_env(a) for a in accounts]
 
-    from_index = max(1, from_index)
-    step = max(1, step)
-    max_pages = max(1, max_pages)
-    date_ranges = month_ranges(from_month, to_month) if from_month and to_month else [None]
-
-    movements_all = []
-    movimientos_raw_pages: list[dict[str, Any]] = []
-    movements_by_account: list[dict[str, Any]] = []
-
-    for account in accounts_to_query:
-        pages = []
-        account_movements = []
-        for date_range in date_ranges:
-            for i in range(max_pages):
-                pag = from_index + (i * step)
-                cabecera = {"statusGenerico": True, "paginacionDesde": pag}
-                if date_range:
-                    cabecera.update({"fechaInicio": date_range["fechaInicio"], "fechaFin": date_range["fechaFin"]})
-                body = {"cuentaSeleccionada": account, "cabecera": cabecera}
-                raw = call_post(session, MOV_ENDPOINT, body)
-                movimientos_raw_pages.append({"request": body, "response": raw})
-                list_candidate = extract_movements(raw)
-                pages.append(
-                    {
-                        "month": date_range["month"] if date_range else None,
-                        "paginacionDesde": pag,
-                        "raw": raw,
-                        "movements_count": len(list_candidate),
-                    }
-                )
-                account_movements.extend(list_candidate)
-                movements_all.extend(list_candidate)
-                if not has_next_page(raw, list_candidate):
-                    break
-
-        movements_by_account.append(
-            {
-                "account": account,
-                "movimientos_total": len(account_movements),
-                "movimientos": account_movements,
-                "movimientos_pages": pages,
-            }
-        )
+    movements_all, movimientos_raw_pages, movements_by_account = accumulated_cartola(
+        session, accounts_to_query, date_ranges, database_path, step, refresh_from)
 
     tarjetas_raw = call_post(session, TARJETAS_ENDPOINT, {})
     payload = {

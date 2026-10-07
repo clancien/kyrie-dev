@@ -63,7 +63,7 @@ PY
 }
 
 run_with_cache() {
-  python3 "$SCRIPT_DIR/bancochile_server_api.py" --max-pages 2 --print-json "$@"
+  python3 "$SCRIPT_DIR/bancochile_server_api.py" --print-json "$@"
 }
 
 if is_cache_vigente; then

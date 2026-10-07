@@ -21,7 +21,8 @@ Obtener datos bancarios (productos, cartola, tarjetas) con un flujo robusto:
 
 - `bancochile_server_api.py`
   - Wrapper CLI del core.
-  - Expone flags (`--account-number`, `--max-pages`, etc.).
+  - Expone flags (`--account-number`, `--desde`, `--hasta`, `--database`).
+  - Guarda meses completos en SQLite y exporta el historial acumulado a JSON.
 
 - `run.sh`
   - Orquestador principal.
@@ -55,4 +56,3 @@ Obtener datos bancarios (productos, cartola, tarjetas) con un flujo robusto:
 ## Estructura de salida (alto nivel)
 - `api_raw.*`: respuestas tal cual de API.
 - `derived.*`: agregaciones locales para consumo (movimientos por cuenta, totales).
-

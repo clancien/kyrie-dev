@@ -3,37 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panel BancoChile</title>
+    <title>Panel Banco Chile</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20261007-logo" />
   </head>
   <body>
     <div class="bg-layer"></div>
-    <main class="container">
+    <div class="container">
       <header class="hero">
-        <div>
-          <p class="kicker">Dashboard Financiero</p>
-          <h1>Resumen de Productos y Cartola</h1>
-          <p class="subtitle">Visualización local de datos obtenidos desde la API.</p>
+        <div class="brand">
+          <img class="brand-logo" src="./assets/banco-chile.svg?v=20261007-normalized" alt="Banco de Chile" width="148" height="30" />
+          <h1>Panel Banco Chile</h1>
         </div>
-        <button id="reloadBtn" class="btn">Recargar</button>
+        <button id="updateBtn" class="btn" type="button">Actualizar</button>
       </header>
+      <p id="updateStatus" class="update-status" role="status" aria-live="polite" hidden></p>
 
-      <section class="metrics" id="metrics"></section>
-
-      <section class="panel">
-        <h2>Cuentas Consultadas</h2>
-        <div id="accounts" class="table-wrap"></div>
-      </section>
-
-      <section class="panel">
+      <div class="dashboard-layout">
+        <aside class="sidebar" aria-label="Productos bancarios">
+          <nav aria-label="Cuentas y tarjetas">
+            <h2 class="menu-heading">Cuentas</h2>
+            <div id="accounts" class="product-menu"></div>
+            <h2 class="menu-heading">Tarjetas</h2>
+            <div id="cards" class="product-menu"></div>
+          </nav>
+        </aside>
+        <main class="panel movements-panel">
         <div class="section-head">
-          <h2>Últimos Movimientos</h2>
+          <h2>Movimientos acumulados</h2>
           <div class="movement-filters">
             <input
               id="movementsSearch"
@@ -53,26 +55,14 @@
           </div>
         </div>
         <div id="movementsByAccount"></div>
-      </section>
-
-      <section class="panel">
-        <h2>Tarjetas</h2>
-        <div id="cards" class="table-wrap"></div>
-      </section>
-
-      <section class="panel">
-        <h2>Raw API</h2>
-        <details>
-          <summary>Ver JSON completo</summary>
-          <pre id="rawJson" class="raw"></pre>
-        </details>
-      </section>
-    </main>
+        </main>
+      </div>
+    </div>
 
     <template id="emptyStateTpl">
       <div class="empty">Sin datos para mostrar.</div>
     </template>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=20261007-update"></script>
   </body>
 </html>

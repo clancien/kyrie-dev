@@ -1,12 +1,18 @@
 services:
   web:
-    image: nginx:alpine
+    build:
+      context: ./docker
     container_name: bancochile_web
     restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - "8030:80"
+      - "127.0.0.1:8030:8030"
+    environment:
+      DISPLAY: ${DISPLAY:-:1}
+      XAUTHORITY: /tmp/bancochile-xauthority
     volumes:
       # Comparte toda la carpeta bancochile con el contenedor
       - ./:/workspace
-      # Configuracion de nginx
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Login visible en el escritorio Linux del host.
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${XAUTHORITY:-/run/user/1000/gdm/Xauthority}:/tmp/bancochile-xauthority:ro

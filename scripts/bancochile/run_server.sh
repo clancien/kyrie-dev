@@ -25,4 +25,4 @@ if ! python3 -c "import requests" >/dev/null 2>&1; then
   exit 1
 fi
 
-python3 "$SCRIPT_DIR/bancochile_server_api.py" --max-pages 2 --print-json "$@"
+python3 "$SCRIPT_DIR/bancochile_server_api.py" --print-json "$@"
