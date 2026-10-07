@@ -7,12 +7,14 @@ description: Implementar una spec o story por ID o path con bmad-build y entrega
 
 ## Resolver la entrada
 
-Requiere un ID o path de un documento Markdown legible. Resuelve paths desde el directorio de trabajo e IDs por nombre e identificador declarado, excluyendo `.review.md`. Si falta, no existe o es ambiguo, informa el problema y detente sin elegir por aproximación.
+Requiere un ID o path de un documento Markdown legible. Resuelve paths desde el directorio de trabajo e IDs por nombre e identificador declarado, excluyendo informes e historial `.reviews/`. Si falta, no existe o es ambiguo, informa el problema y detente sin elegir por aproximación.
 
 Distingue el contrato fuente de la spec operativa de build:
 
 - Un `SPEC.md` nativo y todos sus `companions:` son el contrato fuente. Resuelve y lee los companions desde su carpeta; si alguno falta o no es legible, detente. Build puede generar otra spec operativa: no agregues `status` al kernel ni lo marques `done`.
 - Una story/spec con estado reconocido por `bmad-build` se enruta según ese flujo. Un documento sin ese estado se recibe como intención, no como implementación aprobada.
+
+Si la entrada se entrega desde una corrida `dev-apply-review`, lee su `run.json` y la última review: exige `ready`, `ready_for_dev: true`, política vigente, inventario completo y hashes actuales mediante `verify` del protocolo de `dev-review-spec`. Un estado detenido, legacy o contenido cambiado no demuestra readiness; informa el impedimento y la corrida a reanudar. No aplica este requisito a entradas ajenas al ciclo ni sustituye checkpoints/aprobaciones propios de build. Un informe vecino sin referencia a corrida es evidencia histórica, no aprobación automática.
 
 ## Ejecutar bmad-build
 

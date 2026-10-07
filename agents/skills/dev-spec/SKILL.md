@@ -49,7 +49,7 @@ Responde en español con el enlace real a `SPEC.md`, supuestos, pendientes y pla
 /dev-apply-review <PATH-DE-LA-SPEC>
 ```
 
-Son pasos para continuar, no ejecuciones de este flujo; `dev-apply-review` requiere el informe previo.
+Son pasos para continuar, no ejecuciones de este flujo; `dev-apply-review` requiere el informe previo y ejecuta automáticamente el loop acotado de aplicación y revisiones completas hasta readiness o una parada explícita. No es necesario repetir manualmente review/apply. Major pendientes impiden readiness; minor opcionales pueden acompañar `LISTO CON OBSERVACIONES`.
 
 - Una corrida: `/dev-build <PATH-DE-LA-SPEC>`.
 - Por stories: `/bmad-create-epics-and-stories <PATH-DE-LA-SPEC>` y `/dev-build <PATH-DE-CADA-STORY>`, una vez por story en orden de dependencias. Si aún no existen, conserva el placeholder y explica que las rutas se obtienen al crearlas; no inventes nombres.
