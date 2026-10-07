@@ -6,8 +6,10 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -262,6 +264,12 @@ def extract_movements(raw: dict[str, Any] | list[Any]) -> list[dict[str, Any]]:
     if not isinstance(raw, dict):
         return []
 
+    # Es la estructura actual de getCartola. Priorizarla evita confundir listas
+    # auxiliares de respuestas vacías con movimientos y seguir paginando sin fin.
+    direct_movements = raw.get("movimientos")
+    if isinstance(direct_movements, list) and all(isinstance(x, dict) for x in direct_movements):
+        return direct_movements
+
     candidates: list[list[dict[str, Any]]] = []
     _find_candidate_lists(raw, candidates)
     if not candidates:
@@ -280,6 +288,60 @@ def extract_movements(raw: dict[str, Any] | list[Any]) -> list[dict[str, Any]]:
     return ranked[0][2]
 
 
+def parse_month(value: str) -> tuple[int, int]:
+    """Valida un mes YYYY-MM y devuelve año y mes."""
+    match = re.fullmatch(r"(\d{4})-(\d{2})", value)
+    if not match:
+        raise ServerApiError("El mes debe tener formato YYYY-MM.")
+    year, month = (int(part) for part in match.groups())
+    # 9999-12 no permite calcular el comienzo del mes siguiente con datetime.
+    if not 1 <= year <= 9998 or not 1 <= month <= 12:
+        raise ServerApiError("El mes debe tener formato YYYY-MM.")
+    return year, month
+
+
+def month_date_range(month_value: str) -> dict[str, str]:
+    """Construye el intervalo [inicio de mes, inicio del siguiente) en hora Chile."""
+    year, month = parse_month(month_value)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    timezone = ZoneInfo("America/Santiago")
+
+    def to_utc_iso(value: datetime) -> str:
+        return value.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    return {
+        "month": month_value,
+        "fechaInicio": to_utc_iso(datetime(year, month, 1, tzinfo=timezone)),
+        "fechaFin": to_utc_iso(datetime(next_year, next_month, 1, tzinfo=timezone)),
+    }
+
+
+def month_ranges(from_month: str, to_month: str) -> list[dict[str, str]]:
+    """Devuelve los rangos mensuales inclusivos desde from_month hasta to_month."""
+    start_year, start_month = parse_month(from_month)
+    end_year, end_month = parse_month(to_month)
+    if (start_year, start_month) > (end_year, end_month):
+        raise ServerApiError("--from-month no puede ser posterior a --to-month.")
+
+    ranges = []
+    year, month = start_year, start_month
+    while (year, month) <= (end_year, end_month):
+        ranges.append(month_date_range(f"{year:04d}-{month:02d}"))
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return ranges
+
+
+def has_next_page(raw: dict[str, Any] | list[Any], movements: list[dict[str, Any]]) -> bool:
+    """Respeta la bandera del backend y conserva un fallback para esquemas antiguos."""
+    if isinstance(raw, dict):
+        page_info = raw.get("pagina")
+        if isinstance(page_info, list) and page_info and isinstance(page_info[0], dict):
+            more = str(page_info[0].get("masPaginas", "")).strip().upper()
+            if more:
+                return more in {"S", "SI", "Y", "YES", "TRUE", "1"}
+    return bool(movements)
+
+
 def run_all_api(
     cache_dir: Path,
     output_dir: Path,
@@ -288,6 +350,8 @@ def run_all_api(
     step: int = 100,
     max_pages: int = 2,
     incluir_tarjetas_selector: bool = False,
+    from_month: str = "",
+    to_month: str = "",
 ) -> dict[str, Any]:
     # Cache se usa solo para sesión (storage state), no para resultados API.
     cleanup_cache_api_files(cache_dir)
@@ -317,6 +381,7 @@ def run_all_api(
     from_index = max(1, from_index)
     step = max(1, step)
     max_pages = max(1, max_pages)
+    date_ranges = month_ranges(from_month, to_month) if from_month and to_month else [None]
 
     movements_all = []
     movimientos_raw_pages: list[dict[str, Any]] = []
@@ -325,28 +390,28 @@ def run_all_api(
     for account in accounts_to_query:
         pages = []
         account_movements = []
-        for i in range(max_pages):
-            pag = from_index + (i * step)
-            body = {
-                "cuentaSeleccionada": account,
-                "cabecera": {"statusGenerico": True, "paginacionDesde": pag},
-            }
-            raw = call_post(session, MOV_ENDPOINT, body)
-            movimientos_raw_pages.append(
-                {
-                    "request": {
-                        "cuentaSeleccionada": account,
-                        "cabecera": {"statusGenerico": True, "paginacionDesde": pag},
-                    },
-                    "response": raw,
-                }
-            )
-            list_candidate = extract_movements(raw)
-            pages.append({"paginacionDesde": pag, "raw": raw, "movements_count": len(list_candidate)})
-            account_movements.extend(list_candidate)
-            movements_all.extend(list_candidate)
-            if not list_candidate:
-                break
+        for date_range in date_ranges:
+            for i in range(max_pages):
+                pag = from_index + (i * step)
+                cabecera = {"statusGenerico": True, "paginacionDesde": pag}
+                if date_range:
+                    cabecera.update({"fechaInicio": date_range["fechaInicio"], "fechaFin": date_range["fechaFin"]})
+                body = {"cuentaSeleccionada": account, "cabecera": cabecera}
+                raw = call_post(session, MOV_ENDPOINT, body)
+                movimientos_raw_pages.append({"request": body, "response": raw})
+                list_candidate = extract_movements(raw)
+                pages.append(
+                    {
+                        "month": date_range["month"] if date_range else None,
+                        "paginacionDesde": pag,
+                        "raw": raw,
+                        "movements_count": len(list_candidate),
+                    }
+                )
+                account_movements.extend(list_candidate)
+                movements_all.extend(list_candidate)
+                if not has_next_page(raw, list_candidate):
+                    break
 
         movements_by_account.append(
             {
@@ -364,6 +429,7 @@ def run_all_api(
         "accounts_count": len(accounts),
         "accounts_queried_count": len(accounts_to_query),
         "accounts_queried": accounts_to_query,
+        "months_queried": [date_range["month"] for date_range in date_ranges if date_range],
         # Respuestas raw exactamente como llegan desde la API.
         "api_raw": {
             "selector_productos": selector_raw,
@@ -389,6 +455,7 @@ def run_all_api(
         "ok": True,
         "mode": "server_no_playwright",
         "accounts_queried_count": len(accounts_to_query),
+        "months_queried": [date_range["month"] for date_range in date_ranges if date_range],
         "movimientos_total": len(movements_all),
         "movimientos": movements_all,
         "movimientos_by_account": movements_by_account,

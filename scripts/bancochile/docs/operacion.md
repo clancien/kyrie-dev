@@ -28,6 +28,20 @@ bash scripts/bancochile/run_server.sh
 ```
 Usar cuando ya existe `cache/session_storage_state.json` válido.
 
+## Cartola histórica por mes
+La API acepta un intervalo de fechas. Para evitar mezclar períodos y respetar su
+paginación, el CLI consulta cada mes del rango de forma independiente:
+
+```bash
+source scripts/bancochile/.venv/bin/activate
+python scripts/bancochile/bancochile_server_api.py --month 2026-01 --max-pages 10
+python scripts/bancochile/bancochile_server_api.py \
+  --from-month 2025-01 --to-month 2025-12 --max-pages 10
+bash scripts/bancochile/run_server.sh --month 2026-01 --max-pages 10
+```
+
+`--from-month` y `--to-month` son inclusivos y deben tener formato `YYYY-MM`.
+
 ## Ver resultados
 - `scripts/bancochile/output/all_api_server_latest.json`
 - `scripts/bancochile/cache/all_api_server_latest.json`
@@ -70,4 +84,3 @@ Acción: repetir login UI con Chromium y validar que luego `run.sh` obtenga JSON
 - Renovar cache de sesión cuando expira.
 - Verificar cambios de schema en `api_raw` antes de ajustar `derived`.
 - Evitar commits de credenciales o cookies sensibles.
-

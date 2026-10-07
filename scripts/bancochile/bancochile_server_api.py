@@ -19,6 +19,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--from-index", type=int, default=1)
     parser.add_argument("--step", type=int, default=100)
     parser.add_argument("--max-pages", type=int, default=2)
+    month_group = parser.add_mutually_exclusive_group()
+    month_group.add_argument("--month", default="", help="Consultar un mes (YYYY-MM).")
+    month_group.add_argument("--from-month", default="", help="Primer mes del rango inclusivo (YYYY-MM).")
+    parser.add_argument("--to-month", default="", help="Último mes del rango inclusivo (YYYY-MM).")
     parser.add_argument("--incluir-tarjetas-selector", action="store_true")
     parser.add_argument("--print-json", action="store_true")
     return parser.parse_args()
@@ -26,6 +30,15 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.month:
+        if args.to_month:
+            print("[ERROR] --month no se puede combinar con --to-month.", file=sys.stderr)
+            return 2
+        args.from_month = args.month
+        args.to_month = args.month
+    elif bool(args.from_month) != bool(args.to_month):
+        print("[ERROR] Usa --from-month y --to-month juntos, o --month.", file=sys.stderr)
+        return 2
     cache_dir = Path(args.cache_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
 
@@ -38,6 +51,8 @@ def main() -> int:
             step=args.step,
             max_pages=args.max_pages,
             incluir_tarjetas_selector=args.incluir_tarjetas_selector,
+            from_month=args.from_month,
+            to_month=args.to_month,
         )
         print(f"[OK] Archivo guardado: {output_dir / 'movimientos_server_latest.json'}", file=sys.stderr)
         print(f"[OK] Archivo guardado: {output_dir / 'selector_productos_server_latest.json'}", file=sys.stderr)

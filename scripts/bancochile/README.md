@@ -43,6 +43,19 @@ bash scripts/bancochile/run.sh
 bash scripts/bancochile/run_server.sh
 ```
 
+### Cartola histórica por meses
+```bash
+# Un mes; cada mes admite la paginación indicada.
+python scripts/bancochile/bancochile_server_api.py --month 2026-01 --max-pages 10
+
+# Rango inclusivo, consultado mes a mes.
+python scripts/bancochile/bancochile_server_api.py \
+  --from-month 2025-01 --to-month 2025-12 --max-pages 10
+
+# Los lanzadores también reenvían estos argumentos.
+bash scripts/bancochile/run.sh --month 2026-01 --max-pages 10
+```
+
 ### Renovar sesión UI manualmente
 ```bash
 source scripts/bancochile/.venv/bin/activate

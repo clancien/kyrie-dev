@@ -63,12 +63,12 @@ PY
 }
 
 run_with_cache() {
-  python3 "$SCRIPT_DIR/bancochile_server_api.py" --max-pages 2 --print-json
+  python3 "$SCRIPT_DIR/bancochile_server_api.py" --max-pages 2 --print-json "$@"
 }
 
 if is_cache_vigente; then
   echo "[INFO] Sesion en cache detectada. Intentando reutilizar..." >&2
-  if run_with_cache; then
+  if run_with_cache "$@"; then
     echo "[OK] Ejecucion completada reutilizando cache." >&2
     exit 0
   fi
@@ -80,4 +80,4 @@ fi
 python3 "$SCRIPT_DIR/bancochile_login_ui.py" \
   --browser chromium \
   --storage-state-out "$SCRIPT_DIR/cache/session_storage_state.json"
-run_with_cache
+run_with_cache "$@"
