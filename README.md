@@ -4,7 +4,7 @@ Repositorio personal de utilidades, skills y documentacion de trabajo para desar
 
 ## Contenido
 
-- `doc/`: notas tecnicas, referencias y documentacion de apoyo.
+- `docs/`: notas tecnicas, referencias y documentacion de apoyo.
 - `scripts/`: scripts de automatizacion y herramientas auxiliares.
 - `data/`: datos locales de trabajo.
 
