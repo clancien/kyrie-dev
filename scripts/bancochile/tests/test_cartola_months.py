@@ -31,6 +31,18 @@ class CartolaMonthTests(unittest.TestCase):
                 result = accumulated_cartola(None, [account], month_ranges('2025-02', '2025-02'), database, 100)
                 self.assertEqual(len(result[0]), 2)
 
+    def test_month_uses_accounting_date_before_operation_date(self):
+        account = {'numero': 'test', 'codigoProducto': 'CTD'}
+        response = {'movimientos': [
+            {'id': 1, 'fecha': '20241230 16:35:14', 'fechaContable': '02/01/2025', 'tipo': 'abono', 'monto': '2070010'},
+            {'id': 2, 'fecha': '20250131 20:00:00', 'fechaContable': '03/02/2025', 'tipo': 'abono', 'monto': '1000'},
+        ], 'pagina': [{'masPaginas': 'N'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / 'cartola.sqlite3'
+            with patch('bancochile_server_core.call_post', return_value=response):
+                movements, _, _ = accumulated_cartola(None, [account], month_ranges('2025-01', '2025-01'), database, 100)
+            self.assertEqual([movement['id'] for movement in movements], [1])
+
     def test_failed_month_is_not_marked_complete(self):
         account = {'numero': 'test'}
         response = {'movimientos': [{'id': 1}], 'pagina': [{'masPaginas': 'S'}]}

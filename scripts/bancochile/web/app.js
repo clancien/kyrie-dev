@@ -11,9 +11,12 @@ const movementsByAccountEl = document.getElementById("movementsByAccount");
 const cardsEl = document.getElementById("cards");
 const updateBtn = document.getElementById("updateBtn");
 const updateStatusEl = document.getElementById("updateStatus");
-const movementsSearchEl = document.getElementById("movementsSearch");
-const movementsMonthEl = document.getElementById("movementsMonth");
+const textFiltersEl = document.getElementById("textFilters");
+const addTextFilterEl = document.getElementById("addTextFilter");
+const movementsMonthFromEl = document.getElementById("movementsMonthFrom");
+const movementsMonthToEl = document.getElementById("movementsMonthTo");
 const movementsTypeEl = document.getElementById("movementsType");
+const downloadMovementsCsvEl = document.getElementById("downloadMovementsCsv");
 let selectedKey = null;
 let currentMovementsContext = null;
 
@@ -34,6 +37,8 @@ const clear = (...nodes) => nodes.forEach((n) => (n.innerHTML = ""));
 
 const formatDateISO = (raw) => {
   const txt = String(raw || "").trim();
+  const local = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (local) return `${local[3]}-${local[2]}-${local[1]}`;
   const m = txt.match(/^(\d{4})(\d{2})(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   const m2 = txt.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -50,7 +55,8 @@ const formatTimeHHMM = (raw) => {
   return "-";
 };
 
-const movementDate = (m) => m.fecha || m.fechaMovimiento || m.fechaContable || "";
+const movementDate = (m) => m.fechaContable || m.fecha || m.fechaMovimiento || "";
+const operationDate = (m) => m.fecha || m.fechaMovimiento || "";
 const movementMonth = (m) => {
   const iso = formatDateISO(movementDate(m));
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.slice(0, 7) : "";
@@ -101,10 +107,65 @@ function table(headers, rows, opts = {}) {
   return wrap;
 }
 
+function addTextFilter(mode = "contiene", value = "") {
+  const row = el("div", "text-filter-row");
+  const select = el("select", "input-select text-filter-mode");
+  select.setAttribute("aria-label", "Tipo de filtro de texto");
+  for (const [key, label] of [["contiene", "Contiene"], ["no-contiene", "No contiene"], ["regex", "Regex"]]) {
+    const option = el("option", "", label);
+    option.value = key;
+    select.append(option);
+  }
+  select.value = mode;
+  const input = el("input", "input-search text-filter-input");
+  input.type = "search";
+  input.placeholder = "Texto o expresión regular";
+  input.setAttribute("aria-label", "Texto del filtro");
+  input.autocomplete = "off";
+  input.value = value;
+  const remove = el("button", "btn-remove-filter", "Quitar");
+  remove.type = "button";
+  remove.setAttribute("aria-label", "Quitar filtro de texto");
+  row.append(select, input, remove);
+  textFiltersEl.append(row);
+  return input;
+}
+
+function resetTextFilters() {
+  clear(textFiltersEl);
+  addTextFilter();
+}
+
+function activeTextFilters() {
+  const filters = [];
+  for (const row of textFiltersEl.querySelectorAll(".text-filter-row")) {
+    const value = row.querySelector("input").value.trim();
+    if (!value) continue;
+    const mode = row.querySelector("select").value;
+    if (mode === "regex") {
+      try {
+        const pattern = new RegExp(value, "i");
+        filters.push((text) => pattern.test(text));
+      } catch {
+        return { error: `Expresión regular inválida: ${value}` };
+      }
+    } else if (mode === "no-contiene") {
+      const needle = value.toLocaleLowerCase("es-CL");
+      filters.push((text) => !text.toLocaleLowerCase("es-CL").includes(needle));
+    } else {
+      const needle = value.toLocaleLowerCase("es-CL");
+      filters.push((text) => text.toLocaleLowerCase("es-CL").includes(needle));
+    }
+  }
+  return { filters };
+}
+
 function renderMovementsPlaceholder() {
   currentMovementsContext = null;
-  if (movementsSearchEl) movementsSearchEl.value = "";
-  if (movementsMonthEl) movementsMonthEl.value = "";
+  if (downloadMovementsCsvEl) downloadMovementsCsvEl.disabled = true;
+  resetTextFilters();
+  if (movementsMonthFromEl) movementsMonthFromEl.value = "";
+  if (movementsMonthToEl) movementsMonthToEl.value = "";
   if (movementsTypeEl) movementsTypeEl.value = "";
   clear(movementsByAccountEl);
   movementsByAccountEl.append(el("div", "empty", "Selecciona una cuenta o tarjeta para ver los últimos movimientos."));
@@ -112,22 +173,21 @@ function renderMovementsPlaceholder() {
 
 function renderMovementsRows(title, movimientos) {
   currentMovementsContext = { title, movimientos: Array.isArray(movimientos) ? movimientos : [] };
-  if (movementsSearchEl) movementsSearchEl.value = "";
+  resetTextFilters();
   if (movementsTypeEl) movementsTypeEl.value = "";
-  if (movementsMonthEl) {
+  if (movementsMonthFromEl && movementsMonthToEl) {
     const months = [...new Set(currentMovementsContext.movimientos.map(movementMonth).filter(Boolean))].sort().reverse();
-    movementsMonthEl.innerHTML = "";
-    const allOpt = document.createElement("option");
-    allOpt.value = "";
-    allOpt.textContent = "Todos los meses";
-    movementsMonthEl.append(allOpt);
-    months.forEach((month) => {
-      const opt = document.createElement("option");
-      opt.value = month;
-      opt.textContent = month;
-      movementsMonthEl.append(opt);
-    });
-    movementsMonthEl.value = "";
+    for (const [select, label] of [[movementsMonthFromEl, "Desde"], [movementsMonthToEl, "Hasta"]]) {
+      select.innerHTML = "";
+      select.append(el("option", "", `${label}: todos`));
+      select.firstChild.value = "";
+      months.forEach((month) => {
+        const opt = el("option", "", month);
+        opt.value = month;
+        select.append(opt);
+      });
+      select.value = "";
+    }
   }
   renderMovementsFromCurrent();
 }
@@ -141,25 +201,37 @@ function renderMovementsFromCurrent() {
   clear(movementsByAccountEl);
   const block = el("section", "account-block");
   block.append(el("h3", "account-title", currentMovementsContext.title));
-  const searchText = (movementsSearchEl?.value || "").trim().toLowerCase();
-  const selectedMonth = (movementsMonthEl?.value || "").trim();
+  const textFilterResult = activeTextFilters();
+  if (textFilterResult.error) {
+    if (downloadMovementsCsvEl) downloadMovementsCsvEl.disabled = true;
+    block.append(el("div", "empty", textFilterResult.error));
+    movementsByAccountEl.append(block);
+    return;
+  }
+  const monthFrom = (movementsMonthFromEl?.value || "").trim();
+  const monthTo = (movementsMonthToEl?.value || "").trim();
   const selectedType = (movementsTypeEl?.value || "").trim().toLowerCase();
 
   const filtered = currentMovementsContext.movimientos.filter((m) => {
-    if (selectedMonth && movementMonth(m) !== selectedMonth) return false;
+    const month = movementMonth(m);
+    if (monthFrom && (!month || month < monthFrom)) return false;
+    if (monthTo && (!month || month > monthTo)) return false;
     if (selectedType) {
       const tipo = String(m?.tipo || "").toLowerCase();
       if (tipo !== selectedType) return false;
     }
-    if (searchText) {
-      const full = JSON.stringify(m ?? {}).toLowerCase();
-      if (!full.includes(searchText)) return false;
+    if (textFilterResult.filters.length) {
+      const full = JSON.stringify(m ?? {});
+      if (!textFilterResult.filters.every((matches) => matches(full))) return false;
     }
     return true;
   });
+  if (downloadMovementsCsvEl) downloadMovementsCsvEl.disabled = filtered.length === 0;
 
   if (!filtered.length) {
-    block.append(el("div", "empty", "Sin movimientos para mostrar."));
+    block.append(el("div", "empty", monthFrom && monthTo && monthFrom > monthTo
+      ? "El mes desde debe ser anterior o igual al mes hasta."
+      : "Sin movimientos para mostrar."));
     movementsByAccountEl.append(block);
     return;
   }
@@ -203,11 +275,13 @@ function renderMovementsFromCurrent() {
     if (esCargo) cargoTotal += montoNum;
     if (esAbono) abonoTotal += montoNum;
     const fechaRaw = movementDate(m);
+    const operacionRaw = operationDate(m);
     return [
       formatDateISO(fechaRaw),
-      formatTimeHHMM(fechaRaw),
+      formatTimeHHMM(operacionRaw),
       m.descripcion || m.glosa || m.detalle || "-",
       esAbono ? extractOrigen(m) : "-",
+      formatDateISO(operacionRaw),
       esAbono ? extractComentario(m) : "-",
       esCargo ? montoFmt : "-",
       esAbono ? montoFmt : "-",
@@ -220,12 +294,13 @@ function renderMovementsFromCurrent() {
     "TOTAL",
     "",
     "",
+    "",
     toMoney(cargoTotal),
     toMoney(abonoTotal),
     "",
   ]);
-  block.append(table(["Fecha", "Hora", "Descripción", "Origen", "Comentario", "Cargo", "Abono", "Saldo"], rows, {
-    numericColumns: [5, 6, 7],
+  block.append(table(["Fecha Contable", "Hora", "Descripción", "Origen", "Fecha Operación", "Comentario", "Cargo", "Abono", "Saldo"], rows, {
+    numericColumns: [6, 7, 8],
   }));
   movementsByAccountEl.append(block);
 }
@@ -482,14 +557,24 @@ updateBtn.addEventListener("click", async () => {
     updateBtn.disabled = false;
   }
 });
-if (movementsSearchEl) {
-  movementsSearchEl.addEventListener("input", () => {
-    if (!currentMovementsContext) return;
-    renderMovementsFromCurrent();
-  });
-}
-if (movementsMonthEl) {
-  movementsMonthEl.addEventListener("change", () => {
+addTextFilterEl.addEventListener("click", () => {
+  addTextFilter().focus();
+});
+textFiltersEl.addEventListener("input", () => {
+  if (currentMovementsContext) renderMovementsFromCurrent();
+});
+textFiltersEl.addEventListener("change", () => {
+  if (currentMovementsContext) renderMovementsFromCurrent();
+});
+textFiltersEl.addEventListener("click", (event) => {
+  const button = event.target.closest(".btn-remove-filter");
+  if (!button) return;
+  button.closest(".text-filter-row").remove();
+  if (!textFiltersEl.children.length) addTextFilter();
+  if (currentMovementsContext) renderMovementsFromCurrent();
+});
+for (const monthSelect of [movementsMonthFromEl, movementsMonthToEl]) {
+  monthSelect?.addEventListener("change", () => {
     if (!currentMovementsContext) return;
     renderMovementsFromCurrent();
   });
@@ -500,6 +585,34 @@ if (movementsTypeEl) {
     renderMovementsFromCurrent();
   });
 }
+if (downloadMovementsCsvEl) {
+  downloadMovementsCsvEl.addEventListener("click", () => {
+    const tableEl = movementsByAccountEl.querySelector("table");
+    if (!tableEl) return;
+    const escapeCsv = (value) => {
+      const safe = /^[=+@]/.test(value) || /^-[^\d]/.test(value) ? `'${value}` : value;
+      return `"${safe.replaceAll('"', '""')}"`;
+    };
+    const lines = [...tableEl.querySelectorAll("tr")].map((row) =>
+      [...row.querySelectorAll("th, td")].map((cell, index) => {
+        const value = cell.textContent.trim();
+        const csvValue = cell.tagName === "TD" && index >= 6 && value !== "-" && value !== ""
+          ? String(toNumberSafe(value)) : value;
+        return escapeCsv(csvValue);
+      }).join(";"));
+    const blob = new Blob(["\uFEFF", lines.join("\r\n"), "\r\n"], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const from = movementsMonthFromEl?.value || "todos";
+    const to = movementsMonthToEl?.value || "todos";
+    const account = (selectedKey || "movimientos").replace(/[^a-zA-Z0-9-]/g, "-");
+    link.href = url;
+    link.download = `bancochile-${account}-${from}-a-${to}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+resetTextFilters();
 render();
 updateRequest().then((state) => {
   if (state.status === "running") followUpdate();

@@ -419,8 +419,10 @@ def accumulated_cartola(session: requests.Session, accounts: list[dict[str, Any]
                 # El banco puede incluir un movimiento del mes siguiente en el borde.
                 filtered = []
                 for movement in movements:
-                    date = str(movement.get("fecha") or movement.get("fechaMovimiento") or movement.get("fechaContable") or "")
-                    date_month = date[:7] if re.match(r"\d{4}-\d{2}", date) else f"{date[:4]}-{date[4:6]}" if re.match(r"\d{8}", date) else ""
+                    date = str(movement.get("fechaContable") or movement.get("fecha") or movement.get("fechaMovimiento") or "")
+                    date_month = (f"{date[6:10]}-{date[3:5]}" if re.match(r"\d{2}/\d{2}/\d{4}", date)
+                                  else date[:7] if re.match(r"\d{4}-\d{2}", date)
+                                  else f"{date[:4]}-{date[4:6]}" if re.match(r"\d{8}", date) else "")
                     if not date_month or date_month == month:
                         filtered.append(movement)
                 group["movimientos"].extend(filtered)

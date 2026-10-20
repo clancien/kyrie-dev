@@ -134,6 +134,31 @@ h2 {
   justify-content: flex-end;
 }
 
+.text-filters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 8px;
+  font-weight: 600;
+}
+
+.text-filters-head small { color: var(--muted); font-weight: 400; }
+.text-filters { display: grid; gap: 8px; margin-bottom: 14px; }
+.text-filter-row { display: flex; gap: 8px; align-items: center; }
+.text-filter-mode { width: 150px; flex: 0 0 150px; }
+.text-filter-input { width: auto; flex: 1; min-width: 0; }
+.btn-add-filter, .btn-remove-filter {
+  border: 1px solid var(--line-strong);
+  background: var(--surface-soft);
+  color: var(--ink);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.btn-add-filter:hover, .btn-remove-filter:hover { border-color: var(--accent); }
+
 .input-search {
   width: 320px;
   border: 1px solid var(--line);
@@ -165,6 +190,20 @@ h2 {
   border-color: var(--accent);
   background: #fff;
 }
+
+.btn-download {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-download:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-download:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .table-wrap {
   overflow-x: auto;
@@ -321,6 +360,7 @@ th {
   .product-menu { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
   .movement-filters { width: 100%; justify-content: flex-start; }
   .input-search { width: 100%; }
+  .text-filter-input { width: auto; }
   .input-select { flex: 1; min-width: 0; }
   .hero { align-items: center; }
   .brand { flex-wrap: wrap; gap: 10px; }
@@ -337,6 +377,11 @@ th {
   .movement-filters { display: grid; grid-template-columns: 1fr 1fr; }
   .input-search { grid-column: 1 / -1; }
   .input-select { width: 100%; }
+  .btn-download { grid-column: 1 / -1; }
+  .text-filter-row { flex-wrap: wrap; }
+  .text-filter-mode { flex: 1 1 120px; }
+  .text-filter-input { flex: 2 1 170px; }
+  .btn-remove-filter { flex: 0 0 auto; }
   .product-menu { grid-template-columns: 1fr; }
   .account-block { padding: 10px; }
 }

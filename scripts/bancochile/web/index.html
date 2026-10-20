@@ -37,23 +37,25 @@
         <div class="section-head">
           <h2>Movimientos acumulados</h2>
           <div class="movement-filters">
-            <input
-              id="movementsSearch"
-              class="input-search"
-              type="search"
-              placeholder="Buscar en movimientos..."
-              autocomplete="off"
-            />
-            <select id="movementsMonth" class="input-select">
-              <option value="">Todos los meses</option>
+            <select id="movementsMonthFrom" class="input-select" aria-label="Mes desde">
+              <option value="">Desde: todos</option>
+            </select>
+            <select id="movementsMonthTo" class="input-select" aria-label="Mes hasta">
+              <option value="">Hasta: todos</option>
             </select>
             <select id="movementsType" class="input-select">
               <option value="">Todos los tipos</option>
               <option value="cargo">Cargo</option>
               <option value="abono">Abono</option>
             </select>
+            <button id="downloadMovementsCsv" class="btn-download" type="button" disabled>Descargar CSV</button>
           </div>
         </div>
+        <div class="text-filters-head">
+          <span>Filtros de texto <small>(se aplican todos)</small></span>
+          <button id="addTextFilter" class="btn-add-filter" type="button">Agregar filtro</button>
+        </div>
+        <div id="textFilters" class="text-filters"></div>
         <div id="movementsByAccount"></div>
         </main>
       </div>
