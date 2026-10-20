@@ -7,6 +7,7 @@ _bmad
 .vscode/
 .idea/
 .analysis
+.reviews
 *.swp
 .DS_Store
 Thumbs.db
@@ -36,3 +37,10 @@ agents/skills/sidot-connect/**
 agents/skills/sidot-mesa-ayuda/**
 agents/skills/trello-card-resolution/**
 agents/skills/cyber-publish/**
+
+# Santander private local material
+scripts/santander/.env
+scripts/santander/.cache/
+scripts/santander/data/
+scripts/santander/.venv/
+scripts/santander/**/__pycache__/

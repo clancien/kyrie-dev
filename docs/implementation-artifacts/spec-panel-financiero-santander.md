@@ -57,14 +57,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `scripts/santander/tests/test_core.py` — fixtures sanitizadas y pruebas rojas de partición a 50, fronteras inclusivas, fechas distintas, decimales, identidad/multiplicidad, cierre octubre→noviembre (datos nuevos, vacío y fallo final), rollback y exportación — proteger CAP-2/CAP-3.
-- [ ] `scripts/santander/santander_server_core.py` — adaptador POST por host, validación HTTP/negocio/titular, normalización y partición recursiva sin mezclar padres truncados; SQLite transaccional y exclusión CLI/web — implementar CAP-2/CAP-3.
-- [ ] `scripts/santander/santander_login.py` y `santander_login_ui.py` — acceso normal, captura privada de contexto por host y verificación real; restauración, expiración e intervención manual — implementar CAP-1.
-- [ ] `scripts/santander/santander_server_api.py` — CLI delgada con --desde/--hasta, cuenta/base opcionales y validación antes de red; acumulado completo — implementar CAP-6.
-- [ ] `scripts/santander/tests/test_web.py` y `santander_web_server.py` — trabajo fuera del request, progreso, exclusión, renovación interactiva permitida, errores seguros y allowlist/Host/Origin/token — implementar CAP-5 y AC-6.3.
-- [ ] `scripts/santander/web/index.html`, `app.js` y `styles.css` — panel Santander adaptable y accesible con búsqueda/mes/tipo, estados por recurso, totales por moneda y selección preservada — implementar CAP-4.
+- [x] `scripts/santander/tests/test_core.py` — fixtures sanitizadas y pruebas rojas de partición a 50, fronteras inclusivas, fechas distintas, decimales, identidad/multiplicidad, cierre octubre→noviembre (datos nuevos, vacío y fallo final), rollback y exportación — proteger CAP-2/CAP-3.
+- [x] `scripts/santander/santander_server_core.py` — adaptador POST por host, validación HTTP/negocio/titular, normalización y partición recursiva sin mezclar padres truncados; SQLite transaccional y exclusión CLI/web — implementar CAP-2/CAP-3.
+- [x] `scripts/santander/santander_login.py` y `santander_login_ui.py` — acceso normal, captura privada de contexto por host y verificación real; restauración, expiración e intervención manual — implementar CAP-1.
+- [x] `scripts/santander/santander_server_api.py` — CLI delgada con --desde/--hasta, cuenta/base opcionales y validación antes de red; acumulado completo — implementar CAP-6.
+- [x] `scripts/santander/tests/test_web.py` y `santander_web_server.py` — trabajo fuera del request, progreso, exclusión, renovación interactiva permitida, errores seguros y allowlist/Host/Origin/token — implementar CAP-5 y AC-6.3.
+- [x] `scripts/santander/web/index.html`, `app.js` y `styles.css` — panel Santander adaptable y accesible con búsqueda/mes/tipo, estados por recurso, totales por moneda y selección preservada — implementar CAP-4.
 - [ ] `scripts/santander/requirements.txt`, `setup_env.sh`, `run.sh`, `run_server.sh`, `server.sh`, `docker-compose.yml` y `docker/Dockerfile` — operación desde cualquier directorio, recursos propios, disponibilidad de puerto, escritorio y persistencia — implementar CAP-6.
-- [ ] `.gitignore` y `scripts/santander/README.md`, `docs/arquitectura.md`, `docs/operacion.md` — excluir archivos privados; documentar instalación, puerto, límites y recuperación.
+- [x] `.gitignore` y `scripts/santander/README.md`, `docs/arquitectura.md`, `docs/operacion.md` — excluir archivos privados; documentar instalación, puerto, límites y recuperación.
 - [ ] `scripts/santander/tests/` — completar aceptación y demostración de cierre del companion, contrastar campos/conteos reales sin versionar información personal.
 
 **Acceptance Criteria:**
@@ -72,6 +72,14 @@ context:
 - Given el árbol con cambios previos autorizado por el usuario, when se entrega, then se preservan esos cambios y Banco de Chile permanece intacto.
 
 ## Implementation Notes
+
+- Implementación y comprobaciones locales realizadas; estado de entrega `blocked`, estado operativo `in-progress`. No se modificó el bloque congelado ni el contrato fuente.
+- Login real Personas/iframe con captura automática por host, titular contrastado desde respuesta, sesión HTTP restaurada, cuentas corriente/vista y tarjetas CLP/USD comprobados. Dos consultas históricas conservaron identidad/multiplicidad. Reproducción bancaria del caso 50 frente a 31+20=51, sin usar el padre truncado.
+- Verificación principal: 22 pruebas offline aprobadas (incluye navegador con datos sintéticos), `node --check`, `bash -n`, Compose `config --quiet` y `git diff --check` aprobados desde la raíz. Reinicio local desde `/tmp` correcto; servicio en localhost:8031. Banco de Chile sin cambios.
+- Inspección principal del diff y correcciones de permisos en base personalizada, cierre de conexiones SQLite, decimales sin notación exponencial y puertos dinámicos de prueba. No sustituye las tres capas formales de revisión de step-04, pendientes.
+- Bloqueo externo: Docker BuildKit falló con `forwarding Ping: no such job`; legacy falló por falta de espacio al exportar capa; último build optimizado falló por espacio insuficiente en `/var/cache/apt/archives`. Logs de esta sesión en `/tmp/santander-docker-build.log`, `/tmp/santander-docker-legacy.log` y `/tmp/santander-docker-focused.log`. No se eliminaron recursos ajenos; el temporal propio de un build fallido fue eliminado por el implementador.
+- Falta demostrar persistencia/renovación en contenedor y después completar revisión formal y cierre. El gate de step-03 exige: “If any task is not done or any acceptance criterion is not satisfied, finish the missing work before proceeding”. Por eso no se avanzó a in-review/done ni se creó commit.
+- Trazabilidad y matriz de pruebas en [informe de verificación](spec-panel-financiero-santander.verificacion.md).
 
 ## Spec Change Log
 

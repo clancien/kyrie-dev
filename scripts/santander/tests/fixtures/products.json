@@ -1,0 +1,70 @@
+{
+  "METADATA": {
+    "STATUS": "0",
+    "DESCRIPCION": "OK"
+  },
+  "DATA": {
+    "OUTPUT": {
+      "INFO": {
+        "CODERR": "00"
+      },
+      "ESCALARES": {
+        "NUMERODOCUMENTO": "123456785"
+      },
+      "MATRICES": {
+        "MATRIZCAPTACIONES": {
+          "e1": [
+            {
+              "PRODUCTO": "00",
+              "SUBPRODUCTO": "3000",
+              "CODIGOMONEDA": "CLP",
+              "NUMEROCONTRATO": "000000000001",
+              "OFICINACONTRATO": "0001",
+              "GLOSACORTA": "CTA CTE 3000",
+              "MONTODISPONIBLE": "0",
+              "MONTOUTILIZADO": null,
+              "CUPO": "1000",
+              "AGRUPACIONCOMERCIAL": "CCC"
+            },
+            {
+              "PRODUCTO": "70",
+              "SUBPRODUCTO": "0070",
+              "CODIGOMONEDA": "CLP",
+              "NUMEROCONTRATO": "000000000002",
+              "OFICINACONTRATO": "0001",
+              "GLOSACORTA": "CUENTA VISTA",
+              "MONTODISPONIBLE": "0",
+              "MONTOUTILIZADO": null,
+              "CUPO": "1000",
+              "AGRUPACIONCOMERCIAL": "CCC"
+            },
+            {
+              "PRODUCTO": "80",
+              "SUBPRODUCTO": "2005",
+              "CODIGOMONEDA": "CLP",
+              "NUMEROCONTRATO": "000000000003",
+              "OFICINACONTRATO": "0001",
+              "GLOSACORTA": "VISA LIFE",
+              "MONTODISPONIBLE": "0",
+              "MONTOUTILIZADO": null,
+              "CUPO": "1000",
+              "AGRUPACIONCOMERCIAL": "TCR"
+            },
+            {
+              "PRODUCTO": "80",
+              "SUBPRODUCTO": "2005",
+              "CODIGOMONEDA": "USD",
+              "NUMEROCONTRATO": "000000000003",
+              "OFICINACONTRATO": "0001",
+              "GLOSACORTA": "VISA LIFE",
+              "MONTODISPONIBLE": "0",
+              "MONTOUTILIZADO": null,
+              "CUPO": "1000",
+              "AGRUPACIONCOMERCIAL": "TCR"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

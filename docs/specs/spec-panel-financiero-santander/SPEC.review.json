@@ -1,0 +1,165 @@
+{
+  "status": "complete",
+  "coverage": "full",
+  "required_lenses": [
+    "adversarial",
+    "edge-case-hunter",
+    "structure",
+    "prose"
+  ],
+  "executed_lenses": [
+    "adversarial",
+    "edge-case-hunter",
+    "structure",
+    "prose"
+  ],
+  "checks": {
+    "requirements_preserved": true,
+    "acceptance_observable": false,
+    "references_resolved": true,
+    "decisions_resolved": true
+  },
+  "check_evidence": {
+    "requirements_preserved": "CAP-1 a CAP-6 conservan acceso desde Personas, productos, historial, filtros, actualización y operación aislada; contrastadas con decisiones canónicas de .memlog.md y fuentes Banco de Chile. No se usaron conclusiones de auto-validación como evidencia.",
+    "acceptance_observable": "22 criterios cubren las seis capacidades, pero falta el cambio de mes de R1: AC-3.5 no exige finalizar la cobertura de un mes descargado mientras estaba abierto.",
+    "references_resolved": "Leídos SPEC, sus tres companions, .memlog.md y las tres fuentes declaradas; inventario derivado de frontmatter y contrastado con referencias internas.",
+    "decisions_resolved": "Las preguntas históricas de acceso fueron resueltas por decisiones posteriores. Login automático final, contexto por host, formatos y profundidad son verificaciones técnicas de build con fallo definido, no decisiones de producto abiertas."
+  },
+  "pending_decisions": [],
+  "failures": [],
+  "exclusions": [
+    "verification-gap: aplica a código; la entrada es un contrato documental. La aceptación de la spec se comprobó expresamente mediante checks y triage."
+  ],
+  "excluded_findings": [
+    {
+      "finding": "Restaurar automáticamente Santander local si Docker falla al iniciar después de una construcción exitosa (edge-case-hunter).",
+      "reason": "Mejora operativa opcional: el contrato exige conservar local ante fallo de construcción; no promete un cambio de modo transaccional con restauración automática ante todo fallo de arranque. No demuestra contradicción ni requisito autorizado omitido.",
+      "evidence": "arquitectura-y-operacion.md:34 exige construir antes de detener local y fallar claramente ante colisión; AC-6.2 limita explícitamente la garantía a construcción Docker fallida."
+    }
+  ],
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "major",
+      "section": "CAP-3 / arquitectura-y-operacion.md:13–26 / AC-3.5",
+      "finding": "Una partición descargada durante el mes abierto puede reutilizarse al cambiar de mes sin una consulta final. Por ejemplo, octubre descargado el 14 puede tratarse en noviembre como mes anterior completo, omitiendo movimientos del 15 al 31.",
+      "correction": "Distinguir descarga completa hasta el momento de consulta de mes cerrado reutilizable. Exigir una descarga exitosa posterior al cierre del mes en America/Santiago antes de habilitar su reutilización; agregar aceptación con reloj controlado para octubre→noviembre, con movimientos nuevos y también con el mes inicialmente vacío. Conservar atomicidad y versión previa si esa descarga final falla.",
+      "evidence": "arquitectura-y-operacion.md:16 permite confirmar tras reunir todas las hojas; :24 consulta hasta el último día; :26 reutiliza meses anteriores completos. AC-3.5 exige refrescar el actual y reutilizar el previo sin definir la transición. integracion-santander.md, Truncamiento e historial de cuentas, prohíbe confirmar futuros y refresca actual, pero no obliga a cerrar un mes antes de reutilizarlo.",
+      "consequence": "La CLI puede conservar indefinidamente una versión parcial del mes y exportar un historial con movimientos faltantes aunque las consultas no fallen. La actualización web forzada ofrece recuperación posible, pero no garantiza la corrección del flujo CLI.",
+      "lenses": [
+        "adversarial"
+      ]
+    }
+  ],
+  "resolved_workflow": {
+    "activation_steps_prepend": [],
+    "activation_steps_append": [],
+    "persistent_facts": [],
+    "review_guidance": [],
+    "on_complete": "",
+    "output_format": "both",
+    "report_path": "",
+    "output_preferences": "",
+    "reader_type": "humans",
+    "style_guide": "Microsoft Writing Style Guide",
+    "lenses": [
+      {
+        "code": "adversarial",
+        "name": "Adversarial",
+        "applies_to": "any",
+        "when": "always",
+        "instruction": "Load /home/clancien/.codex/skills/dev-review-spec/references/full-spec-lens.md and follow it."
+      },
+      {
+        "code": "edge-case-hunter",
+        "name": "Edge-Case Hunter",
+        "applies_to": "any",
+        "when": "Content with behavior to trace: code, diffs, and the specs, requirements, plans, and stories that define behavior. Skip for prose documents with no behavioral surface.",
+        "instruction": "Load `references/lens-edge-case-hunter.md` from the skill root and follow it."
+      },
+      {
+        "code": "verification-gap",
+        "name": "Verification Gap",
+        "applies_to": "code",
+        "when": "Reviewed inside a repo where tests can be searched and read.",
+        "instruction": "Load `references/lens-verification-gap.md` from the skill root and follow it."
+      },
+      {
+        "code": "structure",
+        "name": "Editorial Structure",
+        "applies_to": "docs",
+        "when": "Documents whose shape is the author's to change.",
+        "instruction": "Load `references/lens-structure.md` from the skill root and follow it."
+      },
+      {
+        "code": "prose",
+        "name": "Editorial Prose",
+        "applies_to": "docs",
+        "after": "structure",
+        "when": "Documents being copy-edited.",
+        "instruction": "Load `references/lens-prose.md` from the skill root and follow it."
+      }
+    ]
+  },
+  "review_execution": {
+    "content": "/tmp/santander-review-content-20261014.md",
+    "independence": "Tres lentes independientes delegadas en paralelo; prose ejecutada después con findings structure vacíos. Coordinación y triage por el principal.",
+    "structure_result": [],
+    "prose_result": [],
+    "word_count": 3940,
+    "writes": "Solo informes/metadata y temporales; contrato, memoria, fuentes y código de solo lectura."
+  },
+  "schema_version": 1,
+  "policy": "full-spec-v1",
+  "review_id": "eaef854c2f074d85bb1ff36fc3939aaa",
+  "created_at": "2026-10-14T20:08:52.117287+00:00",
+  "snapshot": {
+    "document": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/SPEC.md",
+    "files": [
+      {
+        "path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/.memlog.md",
+        "kind": "dependency",
+        "sha256": "6afc287eb458d5b0bac9265f076992c4808d204f02fa4e56114e76d7fa6a4d45"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/SPEC.md",
+        "kind": "document",
+        "sha256": "c79a4903c3bc2a5943a5d6731fffe93ed3dbe082d0e7899e3c40b2ffe0c84685"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/arquitectura-y-operacion.md",
+        "kind": "companion",
+        "sha256": "890657e8f5d43f327f8be10ea6faaf6f78b41e89914ec317550c8cc94af93a31"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/comportamiento-y-aceptacion.md",
+        "kind": "companion",
+        "sha256": "598761e5cb1b196c62cb94e68aaffb5fb8aed019e0e5206a7a7c03ef0a08937b"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/integracion-santander.md",
+        "kind": "companion",
+        "sha256": "6f12709f12580185af2af2317e0f217207e20a7395ebbbe813d7ed3c4862c471"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/scripts/bancochile/README.md",
+        "kind": "dependency",
+        "sha256": "c44616bf4cb3a58507e158e6cf0537fd17d9cac7569e17765c83c680faa3231f"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/scripts/bancochile/docs/arquitectura.md",
+        "kind": "dependency",
+        "sha256": "76779c677c6956e02c4329d99d75ab0a26bcae0454017a0b824d5878a9fbab2f"
+      },
+      {
+        "path": "/home/clancien/workspace/dev/scripts/bancochile/docs/operacion.md",
+        "kind": "dependency",
+        "sha256": "9a86e829929873cbf50a85e87337dce484a7c9419c46f3ad9ddd98ee1ceaed3c"
+      }
+    ],
+    "digest": "dc0116828771c162cf383054f64ce3645dd0472116462024725283cf17fd5611"
+  },
+  "ready_for_dev": false,
+  "verdict": "NO LISTO",
+  "report_path": "/home/clancien/workspace/dev/docs/specs/spec-panel-financiero-santander/.reviews/SPEC/review-4158859a584a45dcaf0cbf7fcc1d964f/round-000.review.md"
+}

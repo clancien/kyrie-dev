@@ -1,0 +1,17 @@
+services:
+  santander:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    user: "${SANTANDER_UID:-1000}:${SANTANDER_GID:-1000}"
+    environment:
+      DISPLAY: ${DISPLAY:-}
+      XAUTHORITY: /tmp/.Xauthority
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./.cache:/app/.cache
+      - ./data:/app/data
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${XAUTHORITY:-/dev/null}:/tmp/.Xauthority:ro
+    command: ["python", "santander_web_server.py", "--port", "${SANTANDER_PORT:-8031}"]

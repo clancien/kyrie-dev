@@ -1,0 +1,7 @@
+# Arquitectura
+
+Login Playwright separado del adaptador requests y Store SQLite. CLI y servidor comparten exclusión flock por base; proyección pública omite cabeceras y respuestas raw. Frontend local mediante allowlist, Host, Origin y token de instancia. La base conserva cuentas históricas y particiones completas; no deduplica movimientos por descripción/importe. Monedas permanecen separadas. La consulta recursiva usa fechas contables e intervalos inclusivos disjuntos; descarta resultados truncados de padres.
+
+Contratos comprobados con lectura real: DSK METADATA.STATUS=0, productos OUTPUT.INFO.CODERR=00 y titular OUTPUT.ESCALARES.NUMERODOCUMENTO; tarjetas Informacion.Codigo=00. Open Banking devuelve additionalInfo como lista key/value con code-ms=00. AccountId concatena oficina y contrato; commercialGroup vacío fue validado para corriente y vista. Productos conocidos 00:3000, 70:0070 y 80:2005; monedas CLP/USD literales. Los desconocidos fallan explícitamente. Tarjetas usan fecha DD/MM/YYYY; USD decimal coma se convierte exactamente; cuentas CLP cargo con signo final se normaliza a magnitud y tipo por flag. La escala se contrastó contra diferencias de saldos sucesivos.
+
+La identidad del titular se conserva también si no hay productos. La proyección pública usa IDs opacos y máscara; omite titular, contrato y oficina. Los errores de mes no sobrescriben el estado de otros meses ni la fecha del último éxito de un recurso.
