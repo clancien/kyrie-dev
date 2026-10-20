@@ -27,6 +27,13 @@ SOURCE_DIRS=(
     "/home/clancien/Plantillas/"
 )
 
+# --- Carpetas Locales a Excluir ---
+# Rutas absolutas y terminadas en barra inclinada (/).
+# Agrega una carpeta por línea. Se excluye también todo su contenido.
+EXCLUDED_DIRS=(
+    "/home/clancien/Imágenes/Capturas de pantalla/"
+)
+
 # --- Variables de Sincronización ---
 # Carpeta de destino dentro de tu Google Drive remoto.
 REMOTE_DESTINATION="Backup-Local/Phenix"
@@ -120,8 +127,17 @@ for SOURCE in "${SOURCE_DIRS[@]}"; do
 
     log_message "Sincronizando ${SOURCE} a ${CURRENT_DEST}..."
 
+    RSYNC_EXCLUDES=()
+    for EXCLUDED_DIR in "${EXCLUDED_DIRS[@]}"; do
+        # rsync interpreta las exclusiones respecto de la carpeta de origen.
+        if [[ "$EXCLUDED_DIR" == "$SOURCE"* ]]; then
+            RSYNC_EXCLUDES+=(--exclude="/${EXCLUDED_DIR#"$SOURCE"}")
+        fi
+    done
+
     # Opciones de rsync: -a (archivo), -v (verboso), -h (humano), --delete (sincroniza borrando en destino)
     rsync -avh --delete \
+          "${RSYNC_EXCLUDES[@]}" \
           --log-file="${LOG_FILE}.rsync_details" \
           "$SOURCE" \
           "$CURRENT_DEST"
